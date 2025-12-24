@@ -285,9 +285,9 @@ export default function EditProperty() {
 
       alert('Property updated successfully!');
       router.push('/admin/properties');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating property:', error);
-      alert('Failed to update property');
+      alert(`Failed to update property: ${error.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
