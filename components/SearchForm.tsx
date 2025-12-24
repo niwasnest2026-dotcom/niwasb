@@ -227,22 +227,8 @@ export default function SearchForm() {
     <div className="glass-card rounded-3xl shadow-glass-lg p-4 sm:p-6 max-w-2xl mx-auto">
       <div className="space-y-3 sm:space-y-4">
         <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase flex items-center justify-between">
+          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
             CITY
-            {locationPermission !== 'denied' && (
-              <button
-                onClick={requestLocation}
-                disabled={isGettingLocation}
-                className="flex items-center space-x-1 text-xs text-rose-500 hover:text-rose-600 disabled:opacity-50"
-              >
-                {isGettingLocation ? (
-                  <FaSpinner className="animate-spin" />
-                ) : (
-                  <FaLocationArrow />
-                )}
-                <span>{isGettingLocation ? 'Getting...' : 'Use current location'}</span>
-              </button>
-            )}
           </label>
           <div className="relative">
             <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm z-10" />
