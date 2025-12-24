@@ -259,7 +259,6 @@ export default function EditProperty() {
           verified: formData.verified,
           instant_book: formData.instant_book,
           secure_booking: formData.secure_booking,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', propertyId);
 
