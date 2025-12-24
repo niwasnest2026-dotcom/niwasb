@@ -207,6 +207,17 @@ export default function PropertyDetails() {
                 </span>
               )}
             </div>
+
+            {/* Rating Overlay on Image */}
+            {property.rating && property.rating > 0 && (
+              <div className="absolute bottom-4 right-4 flex items-center space-x-1 px-3 py-2 rounded-lg bg-black/70 backdrop-blur-md text-white shadow-lg">
+                <FaStar className="text-amber-400 text-sm" />
+                <span className="font-bold text-sm">{property.rating}</span>
+                {property.review_count && property.review_count > 0 && (
+                  <span className="text-xs text-gray-300">({property.review_count})</span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="p-8">
@@ -238,19 +249,6 @@ export default function PropertyDetails() {
                       ? `${property.area}, ${property.city}`
                       : property.city || property.area || property.address}
                   </span>
-                </div>
-
-                {/* Rating Badge */}
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {property.rating && property.rating > 0 && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
-                      <FaStar className="text-amber-500" />
-                      <span className="font-bold text-gray-900">{property.rating}</span>
-                      {property.review_count && property.review_count > 0 && (
-                        <span className="text-gray-600 text-sm">({property.review_count} reviews)</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
