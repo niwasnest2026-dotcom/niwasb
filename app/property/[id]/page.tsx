@@ -196,9 +196,9 @@ export default function PropertyDetails() {
             )}
 
             <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-              {property.instant_book && (
-                <span className="px-3 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-full">
-                  INSTANT BOOK
+              {(property as any).gender_preference && (
+                <span className="px-3 py-1.5 bg-purple-500 text-white text-sm font-bold rounded-full">
+                  {(property as any).gender_preference}
                 </span>
               )}
               {property.property_type && (
@@ -212,18 +212,7 @@ export default function PropertyDetails() {
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
               <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                  {property.name}
-                </h1>
-                <div className="flex items-center text-gray-600 mb-4">
-                  <FaMapMarkerAlt className="mr-2 text-rose-500" />
-                  <span className="text-lg">
-                    {property.area && property.city
-                      ? `${property.area}, ${property.city}`
-                      : property.city || property.area || property.address}
-                  </span>
-                </div>
-
+                {/* Verified/Secure Badges - Above Property Name */}
                 <div className="flex flex-wrap gap-3 mb-4">
                   {property.verified && (
                     <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
@@ -237,6 +226,22 @@ export default function PropertyDetails() {
                       <span>Secure Booking</span>
                     </div>
                   )}
+                </div>
+
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                  {property.name}
+                </h1>
+                <div className="flex items-center text-gray-600 mb-4">
+                  <FaMapMarkerAlt className="mr-2 text-rose-500" />
+                  <span className="text-lg">
+                    {property.area && property.city
+                      ? `${property.area}, ${property.city}`
+                      : property.city || property.area || property.address}
+                  </span>
+                </div>
+
+                {/* Rating Badge */}
+                <div className="flex flex-wrap gap-3 mb-4">
                   {property.rating && property.rating > 0 && (
                     <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
                       <FaStar className="text-amber-500" />
