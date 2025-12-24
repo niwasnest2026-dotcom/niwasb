@@ -63,35 +63,44 @@ export default function TestAdminPage() {
 
       // Test 4: Test property insertion (if admin)
       if (isAdmin) {
-        const testProperty = {
-          name: 'Test Property - DELETE ME',
-          address: 'Test Address',
-          city: 'Test City',
-          property_type: 'PG',
-          price: 10000,
-          gender_preference: 'Co-living',
-          verified: true,
-          secure_booking: true,
-        };
+        try {
+          const testProperty = {
+            name: 'Test Property - DELETE ME',
+            address: 'Test Address',
+            city: 'Test City',
+            property_type: 'PG',
+            price: 10000,
+            gender_preference: 'Co-living',
+            verified: true,
+            secure_booking: true,
+          };
 
-        const { data: insertedProperty, error: insertError } = await supabase
-          .from('properties')
-          .insert([testProperty])
-          .select()
-          .single();
-
-        if (insertError) {
-          results.push('❌ Property insert failed: ' + insertError.message);
-        } else {
-          results.push('✅ Property insert successful');
-          
-          // Clean up test property
-          await supabase
+          const { data: insertedProperty, error: insertError } = await supabase
             .from('properties')
-            .delete()
-            .eq('id', (insertedProperty as any).id);
-          results.push('✅ Test property cleaned up');
+            .insert([testProperty])
+            .select()
+            .single();
+
+          if (insertError) {
+            results.push('❌ Property insert failed: ' + insertError.message);
+            if (insertError.message.includes('row-level security')) {
+              results.push('💡 Fix: Run quick-rls-fix.sql to disable RLS');
+            }
+          } else {
+            results.push('✅ Property insert successful');
+            
+            // Clean up test property
+            await supabase
+              .from('properties')
+              .delete()
+              .eq('id', (insertedProperty as any).id);
+            results.push('✅ Test property cleaned up');
+          }
+        } catch (error: any) {
+          results.push('❌ Property insert error: ' + error.message);
         }
+      } else {
+        results.push('⚠️ Skipping insert test (not admin)');
       }
 
     } catch (error: any) {
@@ -134,11 +143,12 @@ export default function TestAdminPage() {
           </div>
 
           <div className="mt-6 pt-6 border-t">
-            <h3 className="font-semibold mb-2">Next Steps:</h3>
+            <h3 className="font-semibold mb-2">Quick Fixes:</h3>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>1. If you see RLS errors, run the <code>complete-database-fix.sql</code> script</li>
-              <li>2. If you're not admin, run the <code>admin-setup.sql</code> script</li>
-              <li>3. If properties table has issues, check your Supabase dashboard</li>
+              <li>1. <strong>RLS Error:</strong> Run <code>quick-rls-fix.sql</code> (fastest fix)</li>
+              <li>2. <strong>Not Admin:</strong> Run <code>admin-setup.sql</code></li>
+              <li>3. <strong>Missing Tables:</strong> Run <code>simple-database-fix.sql</code></li>
+              <li>4. <strong>ON CONFLICT Error:</strong> Use simple scripts instead of complete ones</li>
             </ul>
           </div>
 
