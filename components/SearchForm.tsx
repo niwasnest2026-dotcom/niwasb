@@ -1,37 +1,113 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaClock, FaCalendar, FaUsers, FaSearch, FaChevronDown, FaBuilding, FaLocationArrow, FaSpinner } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaClock, FaCalendar, FaUsers, FaSearch, FaChevronDown, FaLocationArrow, FaSpinner, FaHistory, FaBuilding } from 'react-icons/fa';
+import { supabase } from '@/lib/supabase';
 
-const cities = ['Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai'];
+const popularCities = [
+  'Goa', 'Bangalore', 'New Delhi', 'Mumbai', 'Pune', 'Chennai', 
+  'Hyderabad', 'Jaipur', 'Gurgaon', 'Agra', 'Ahmedabad', 'Kolkata',
+  'Kochi', 'Chandigarh', 'Indore', 'Bhopal', 'Lucknow', 'Nagpur'
+];
+
 const durations = ['1 Month', '3 Months', '6 Months', '12 Months'];
 const guestOptions = ['1 Guest', '2 Guests', '3 Guests', '4+ Guests'];
+
+interface Property {
+  id: string;
+  name: string;
+  city: string;
+  area: string | null;
+  price: number;
+  property_type: string;
+}
 
 export default function SearchForm() {
   const router = useRouter();
   const [city, setCity] = useState('');
-  const [area, setArea] = useState('');
   const [duration, setDuration] = useState('1 Month');
   const [moveIn, setMoveIn] = useState('');
   const [guests, setGuests] = useState('1 Guest');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   const [isLocationDetected, setIsLocationDetected] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const cityInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load recent searches from localStorage
+    const saved = localStorage.getItem('recentCitySearches');
+    if (saved) {
+      setRecentSearches(JSON.parse(saved));
+    }
+
     // Check if geolocation is supported and get permission status
     if ('geolocation' in navigator && 'permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
         setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
-        
-        // If permission is already granted, get location automatically
-        if (result.state === 'granted') {
-          getCurrentLocation();
-        }
       });
     }
+
+    // Close suggestions when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        cityInputRef.current &&
+        !cityInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    // Filter cities and fetch properties based on input
+    if (city.trim()) {
+      const filtered = popularCities.filter(cityName =>
+        cityName.toLowerCase().includes(city.toLowerCase())
+      );
+      setFilteredCities(filtered);
+      
+      // Fetch properties from database
+      fetchProperties(city.trim());
+    } else {
+      setFilteredCities([]);
+      setProperties([]);
+    }
+  }, [city]);
+
+  const fetchProperties = async (searchCity: string) => {
+    setIsLoadingProperties(true);
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, name, city, area, price, property_type')
+        .or(`city.ilike.%${searchCity}%,area.ilike.%${searchCity}%,name.ilike.%${searchCity}%`)
+        .limit(6);
+
+      if (error) {
+        console.error('Error fetching properties:', error);
+        setProperties([]);
+      } else {
+        setProperties(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      setProperties([]);
+    } finally {
+      setIsLoadingProperties(false);
+    }
+  };
 
   const getCurrentLocation = async () => {
     setIsGettingLocation(true);
@@ -62,23 +138,18 @@ export default function SearchForm() {
         const address = data.address;
         
         if (address) {
-          // Extract city and area information
+          // Extract city information
           const detectedCity = address.city || address.town || address.village || address.county || address.state_district;
-          const detectedArea = address.suburb || address.neighbourhood || address.residential || address.hamlet || address.road;
           
           if (detectedCity) {
             setCity(detectedCity);
             setIsLocationDetected(true);
-          }
-          if (detectedArea) {
-            setArea(detectedArea);
-            setIsLocationDetected(true);
+            setShowSuggestions(false);
           }
         }
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      // You might want to show a user-friendly error message here
     } finally {
       setIsGettingLocation(false);
     }
@@ -86,16 +157,45 @@ export default function SearchForm() {
 
   const requestLocation = () => {
     if (locationPermission === 'denied') {
-      alert('Location access is denied. Please enable location permissions in your browser settings to auto-detect your area.');
+      alert('Location access is denied. Please enable location permissions in your browser settings to auto-detect your city.');
       return;
     }
     getCurrentLocation();
   };
 
+  const handleCitySelect = (selectedCity: string) => {
+    setCity(selectedCity);
+    setShowSuggestions(false);
+    
+    // Add to recent searches
+    const updatedRecent = [selectedCity, ...recentSearches.filter(c => c !== selectedCity)].slice(0, 3);
+    setRecentSearches(updatedRecent);
+    localStorage.setItem('recentCitySearches', JSON.stringify(updatedRecent));
+  };
+
+  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCity(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleCityInputFocus = () => {
+    setShowSuggestions(true);
+  };
+
+  const handlePropertySelect = (property: Property) => {
+    router.push(`/property/${property.id}`);
+  };
+
   const handleSearch = () => {
+    if (city.trim()) {
+      // Add to recent searches
+      const updatedRecent = [city, ...recentSearches.filter(c => c !== city)].slice(0, 3);
+      setRecentSearches(updatedRecent);
+      localStorage.setItem('recentCitySearches', JSON.stringify(updatedRecent));
+    }
+
     const params = new URLSearchParams();
     if (city) params.set('city', city);
-    if (area) params.set('area', area);
     if (duration) params.set('duration', duration);
     if (moveIn) params.set('moveIn', moveIn);
     if (guests) params.set('guests', guests);
@@ -120,38 +220,172 @@ export default function SearchForm() {
                 ) : (
                   <FaLocationArrow />
                 )}
-                <span>{isGettingLocation ? 'Getting...' : 'Use my location'}</span>
+                <span>{isGettingLocation ? 'Getting...' : 'Use current location'}</span>
               </button>
             )}
           </label>
           <div className="relative">
-            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
+            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm z-10" />
             <input
+              ref={cityInputRef}
               type="text"
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Enter city or use location"
+              onChange={handleCityInputChange}
+              onFocus={handleCityInputFocus}
+              placeholder="Search city, area or hotel"
               className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 bg-transparent placeholder-neutral-400 text-sm sm:text-base"
             />
-          </div>
-        </div>
+            
+            {/* City Suggestions Dropdown */}
+            {showSuggestions && (
+              <div 
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mt-1"
+              >
+                {/* Use Current Location Option */}
+                {locationPermission !== 'denied' && (
+                  <button
+                    onClick={requestLocation}
+                    disabled={isGettingLocation}
+                    className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3 border-b border-neutral-100 disabled:opacity-50"
+                  >
+                    <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center">
+                      {isGettingLocation ? (
+                        <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                      ) : (
+                        <FaLocationArrow className="text-blue-500 text-sm" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-blue-600">
+                        {isGettingLocation ? 'Getting location...' : 'Use current location'}
+                      </div>
+                      <div className="text-sm text-neutral-500">Properties near me</div>
+                    </div>
+                  </button>
+                )}
 
-        <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            AREA
-            {isLocationDetected && area && (
-              <span className="text-green-600 text-xs ml-2">(Auto-detected)</span>
+                {/* Recent Searches */}
+                {recentSearches.length > 0 && !city.trim() && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                      Recent searches
+                    </div>
+                    {recentSearches.map((recentCity, index) => (
+                      <button
+                        key={`recent-${index}`}
+                        onClick={() => handleCitySelect(recentCity)}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                      >
+                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
+                          <FaHistory className="text-neutral-500 text-sm" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-neutral-900">{recentCity}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Properties from Database */}
+                {city.trim() && properties.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50 flex items-center justify-between">
+                      <span>Available Properties</span>
+                      {isLoadingProperties && <FaSpinner className="animate-spin text-sm" />}
+                    </div>
+                    {properties.map((property) => (
+                      <button
+                        key={property.id}
+                        onClick={() => handlePropertySelect(property)}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3 border-b border-neutral-50 last:border-b-0"
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <FaBuilding className="text-primary text-sm" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-neutral-900 truncate">{property.name}</div>
+                          <div className="text-sm text-neutral-500 flex items-center space-x-1">
+                            <span>{property.area || property.city}</span>
+                            <span className="text-neutral-300">•</span>
+                            <span className="font-medium text-primary">₹{property.price?.toLocaleString()}/month</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
+                          Property
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Locality Suggestions */}
+                {city.trim() && filteredCities.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                      Localities
+                    </div>
+                    {filteredCities.slice(0, 3).map((cityName, index) => (
+                      <button
+                        key={`filtered-${index}`}
+                        onClick={() => handleCitySelect(cityName)}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                      >
+                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-neutral-900">{cityName}</div>
+                        </div>
+                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
+                          Locality
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Popular Cities */}
+                {!city.trim() && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                      Popular cities
+                    </div>
+                    {popularCities.slice(0, 10).map((cityName, index) => (
+                      <button
+                        key={`popular-${index}`}
+                        onClick={() => handleCitySelect(cityName)}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                      >
+                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-neutral-900">{cityName}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* No Results */}
+                {city.trim() && !isLoadingProperties && properties.length === 0 && filteredCities.length === 0 && (
+                  <div className="px-4 py-6 text-center text-neutral-500">
+                    <div className="text-sm">No properties or cities found matching "{city}"</div>
+                    <div className="text-xs mt-1">Try searching for a different location</div>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {city.trim() && isLoadingProperties && properties.length === 0 && (
+                  <div className="px-4 py-6 text-center text-neutral-500">
+                    <FaSpinner className="animate-spin mx-auto mb-2" />
+                    <div className="text-sm">Searching for properties...</div>
+                  </div>
+                )}
+              </div>
             )}
-          </label>
-          <div className="relative">
-            <FaBuilding className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
-            <input
-              type="text"
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              placeholder={isGettingLocation ? "Detecting area..." : "Enter area or neighborhood"}
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 bg-transparent placeholder-neutral-400 text-sm sm:text-base"
-            />
           </div>
         </div>
 
