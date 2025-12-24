@@ -37,7 +37,7 @@ const amenityIcons: Record<string, any> = {
 export default function PropertyDetails() {
   const params = useParams();
   const router = useRouter();
-  const propertyId = params.id as string;
+  const [propertyId, setPropertyId] = useState<string | null>(null);
   const [property, setProperty] = useState<PropertyWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -47,7 +47,16 @@ export default function PropertyDetails() {
     contact_email: 'niwasnest2026@gmail.com'
   });
 
+  // Handle params safely
   useEffect(() => {
+    if (params?.id) {
+      setPropertyId(params.id as string);
+    }
+  }, [params]);
+
+  useEffect(() => {
+    if (!propertyId) return;
+
     async function fetchData() {
       try {
         const [propertyResult, settingsResult] = await Promise.all([
@@ -64,7 +73,7 @@ export default function PropertyDetails() {
                 images:room_images(*)
               )
             `)
-            .eq('id', propertyId)
+            .eq('id', propertyId!)
             .maybeSingle(),
           supabase
             .from('site_settings')
@@ -99,16 +108,30 @@ export default function PropertyDetails() {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        router.push('/');
+        // Use window.location instead of router if router is not available
+        if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [propertyId, router]);
+  }, [propertyId]);
 
-  if (loading) {
+  const handleBackClick = () => {
+    try {
+      router.push('/');
+    } catch (error) {
+      // Fallback if router is not available
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  };
+
+  if (loading || !propertyId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -136,13 +159,13 @@ export default function PropertyDetails() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <Link
-          href="/"
+        <button
+          onClick={handleBackClick}
           className="inline-flex items-center text-primary hover:underline mb-6"
         >
           <FaArrowLeft className="mr-2" />
           Back to listings
-        </Link>
+        </button>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="relative h-96 bg-gray-200">
