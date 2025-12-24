@@ -31,7 +31,6 @@ export default function SearchForm() {
   const [guests, setGuests] = useState('1 Guest');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
-  const [isLocationDetected, setIsLocationDetected] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -71,15 +70,24 @@ export default function SearchForm() {
   }, []);
 
   useEffect(() => {
-    // Filter cities and fetch properties based on input
+    // Filter cities based on input
     if (city.trim()) {
       const filtered = popularCities.filter(cityName =>
         cityName.toLowerCase().includes(city.toLowerCase())
       );
       setFilteredCities(filtered);
       
-      // Fetch properties from database
-      fetchProperties(city.trim());
+      // Only fetch properties if the entered city matches exactly with popular cities
+      // or if it's a complete city name (more than 3 characters and no exact match in popular cities)
+      const exactMatch = popularCities.find(cityName => 
+        cityName.toLowerCase() === city.toLowerCase()
+      );
+      
+      if (exactMatch || (city.trim().length > 3 && filtered.length === 0)) {
+        fetchProperties(city.trim());
+      } else {
+        setProperties([]);
+      }
     } else {
       setFilteredCities([]);
       setProperties([]);
@@ -143,7 +151,6 @@ export default function SearchForm() {
           
           if (detectedCity) {
             setCity(detectedCity);
-            setIsLocationDetected(true);
             setShowSuggestions(false);
           }
         }
@@ -288,11 +295,37 @@ export default function SearchForm() {
                   </>
                 )}
 
-                {/* Properties from Database */}
+                {/* Locality Suggestions - Show first when typing */}
+                {city.trim() && filteredCities.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                      Cities
+                    </div>
+                    {filteredCities.slice(0, 5).map((cityName, index) => (
+                      <button
+                        key={`filtered-${index}`}
+                        onClick={() => handleCitySelect(cityName)}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                      >
+                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-neutral-900">{cityName}</div>
+                        </div>
+                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
+                          City
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Properties from Database - Show only for complete city names */}
                 {city.trim() && properties.length > 0 && (
                   <>
                     <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50 flex items-center justify-between">
-                      <span>Available Properties</span>
+                      <span>Properties in {city}</span>
                       {isLoadingProperties && <FaSpinner className="animate-spin text-sm" />}
                     </div>
                     {properties.map((property) => (
@@ -314,32 +347,6 @@ export default function SearchForm() {
                         </div>
                         <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
                           Property
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {/* Locality Suggestions */}
-                {city.trim() && filteredCities.length > 0 && (
-                  <>
-                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
-                      Localities
-                    </div>
-                    {filteredCities.slice(0, 3).map((cityName, index) => (
-                      <button
-                        key={`filtered-${index}`}
-                        onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
-                      >
-                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-neutral-900">{cityName}</div>
-                        </div>
-                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
-                          Locality
                         </div>
                       </button>
                     ))}
@@ -372,16 +379,16 @@ export default function SearchForm() {
                 {/* No Results */}
                 {city.trim() && !isLoadingProperties && properties.length === 0 && filteredCities.length === 0 && (
                   <div className="px-4 py-6 text-center text-neutral-500">
-                    <div className="text-sm">No properties or cities found matching "{city}"</div>
-                    <div className="text-xs mt-1">Try searching for a different location</div>
+                    <div className="text-sm">No cities or properties found matching "{city}"</div>
+                    <div className="text-xs mt-1">Try searching for a popular city name</div>
                   </div>
                 )}
 
                 {/* Loading State */}
-                {city.trim() && isLoadingProperties && properties.length === 0 && (
+                {city.trim() && isLoadingProperties && (
                   <div className="px-4 py-6 text-center text-neutral-500">
                     <FaSpinner className="animate-spin mx-auto mb-2" />
-                    <div className="text-sm">Searching for properties...</div>
+                    <div className="text-sm">Searching for properties in {city}...</div>
                   </div>
                 )}
               </div>
