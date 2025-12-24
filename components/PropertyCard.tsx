@@ -110,13 +110,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </>
         )}
 
-        {/* Top Left Badges */}
+        {/* Top Left Badges - Gender Preference */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {property.instant_book && (
-            <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-amber-100/80 backdrop-blur-md text-amber-700 text-xs font-bold border border-amber-200/50 shadow-sm">
-                <FaBolt className="text-xs" />
-                <span className="hidden sm:inline">INSTANT BOOK</span>
-                <span className="sm:hidden">INSTANT</span>
+            {(property as any).gender_preference && (
+            <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-purple-100/80 backdrop-blur-md text-purple-700 text-xs font-bold border border-purple-200/50 shadow-sm">
+                <span>{(property as any).gender_preference}</span>
             </div>
             )}
              {property.property_type && (
@@ -158,6 +156,22 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         
         {/* Title & Location */}
         <div className="mb-4">
+            {/* Verified/Secure Badges - Above PG Name */}
+            <div className="flex items-center flex-wrap gap-2 mb-2">
+              {property.verified && (
+                <div className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-50/50 backdrop-blur-md border border-emerald-200/50 text-emerald-700 text-xs font-semibold">
+                  <MdVerified className="text-sm" />
+                  <span>Verified</span>
+                </div>
+              )}
+              {property.secure_booking && (
+                <div className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-blue-50/50 backdrop-blur-md border border-blue-200/50 text-blue-700 text-xs font-semibold">
+                  <MdSecurity className="text-sm" />
+                  <span>Secure</span>
+                </div>
+              )}
+            </div>
+            
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-1 mb-1">
             {property.name}
             </h3>
@@ -167,22 +181,6 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 {property.area && property.city ? `${property.area}, ${property.city}` : property.city || property.area || property.address}
             </span>
             </div>
-        </div>
-
-        {/* Verified/Secure Badges */}
-        <div className="flex items-center flex-wrap gap-2 mb-5">
-          {property.verified && (
-            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-50/50 backdrop-blur-md border border-emerald-200/50 text-emerald-700 text-xs font-semibold">
-              <MdVerified className="text-sm" />
-              <span>Verified</span>
-            </div>
-          )}
-          {property.secure_booking && (
-            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-blue-50/50 backdrop-blur-md border border-blue-200/50 text-blue-700 text-xs font-semibold">
-              <MdSecurity className="text-sm" />
-              <span>Secure</span>
-            </div>
-          )}
         </div>
 
         {/* Amenities List */}

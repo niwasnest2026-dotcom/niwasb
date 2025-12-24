@@ -43,6 +43,7 @@ export default function EditProperty() {
     security_deposit: '',
     available_months: '',
     property_type: 'PG',
+    gender_preference: 'Co-living',
     featured_image: '',
     rating: '',
     verified: false,
@@ -106,6 +107,7 @@ export default function EditProperty() {
             security_deposit: property.security_deposit?.toString() || '',
             available_months: property.available_months?.toString() || '',
             property_type: property.property_type || 'PG',
+            gender_preference: property.gender_preference || 'Co-living',
             featured_image: property.featured_image || '',
             rating: property.rating?.toString() || '',
             verified: property.verified || false,
@@ -251,6 +253,7 @@ export default function EditProperty() {
           security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
           available_months: formData.available_months ? parseInt(formData.available_months) : null,
           property_type: formData.property_type,
+          gender_preference: formData.gender_preference,
           featured_image: formData.featured_image || null,
           rating: formData.rating ? parseFloat(formData.rating) : null,
           verified: formData.verified,
@@ -344,6 +347,23 @@ export default function EditProperty() {
                 <option value="Hostel">Hostel</option>
                 <option value="Flat">Flat</option>
                 <option value="Room">Room</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender Preference *
+              </label>
+              <select
+                name="gender_preference"
+                value={formData.gender_preference}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="Co-living">Co-living</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
               </select>
             </div>
           </div>
