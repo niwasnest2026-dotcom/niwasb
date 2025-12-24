@@ -140,6 +140,17 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <FaRegHeart className="text-gray-700 text-lg" />
           )}
         </button>
+
+        {/* Rating Overlay on Photo */}
+        {property.rating && property.rating > 0 && (
+          <div className="absolute bottom-3 right-3 flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white shadow-lg">
+            <FaStar className="text-amber-400 text-sm" />
+            <span className="font-bold text-sm">{property.rating}</span>
+            {property.review_count && property.review_count > 0 && (
+              <span className="text-xs text-gray-300">({property.review_count})</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* --- CONTENT SECTION --- */}
@@ -189,7 +200,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </div>
         )}
 
-        {/* Footer: Price & Rating */}
+        {/* Footer: Price */}
         <div className="flex items-end justify-between pt-4 border-t border-white/30">
           <div>
             <div className="flex items-baseline">
@@ -211,13 +222,6 @@ export default function PropertyCard({ property }: PropertyCardProps) {
               )}
             </div>
           </div>
-
-          {property.rating && property.rating > 0 && (
-            <div className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-white/50 backdrop-blur-md border border-white/50 shadow-sm">
-              <FaStar className="text-amber-500 text-sm" />
-              <span className="font-bold text-gray-900 text-sm">{property.rating}</span>
-            </div>
-          )}
         </div>
 
         {/* Action Button - Safe Link */}

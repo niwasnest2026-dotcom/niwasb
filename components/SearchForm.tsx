@@ -193,6 +193,19 @@ export default function SearchForm() {
     router.push(`/property/${property.id}`);
   };
 
+  // Calculate move-out date based on move-in date and duration
+  const calculateMoveOutDate = () => {
+    if (!moveIn || !duration) return 'Auto-calculated';
+    
+    const moveInDate = new Date(moveIn);
+    const durationMonths = parseInt(duration.split(' ')[0]);
+    
+    const moveOutDate = new Date(moveInDate);
+    moveOutDate.setMonth(moveOutDate.getMonth() + durationMonths);
+    
+    return moveOutDate.toISOString().split('T')[0];
+  };
+
   const handleSearch = () => {
     if (city.trim()) {
       // Add to recent searches
@@ -440,7 +453,7 @@ export default function SearchForm() {
             <FaCalendar className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
             <input
               type="text"
-              value="Auto-calculated"
+              value={calculateMoveOutDate()}
               disabled
               className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 outline-none text-neutral-400 bg-transparent text-sm sm:text-base"
             />
