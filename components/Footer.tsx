@@ -42,26 +42,21 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-white font-semibold mb-4">Categories</h3>
+            <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/listings?type=apartment" className="text-sm hover:text-white transition-colors">
-                  Apartments
+                <Link href="/terms" className="text-sm hover:text-white transition-colors">
+                  Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link href="/listings?type=house" className="text-sm hover:text-white transition-colors">
-                  Houses
+                <Link href="/privacy" className="text-sm hover:text-white transition-colors">
+                  Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/listings?type=villa" className="text-sm hover:text-white transition-colors">
-                  Villas
-                </Link>
-              </li>
-              <li>
-                <Link href="/listings?type=studio" className="text-sm hover:text-white transition-colors">
-                  Studios
+                <Link href="/cancellation" className="text-sm hover:text-white transition-colors">
+                  Cancellation & Refunds
                 </Link>
               </li>
             </ul>
@@ -92,8 +87,23 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-neutral-800 mt-8 pt-6 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
+        <div className="border-t border-neutral-800 mt-8 pt-6">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-sm text-center md:text-left">
+              &copy; {new Date().getFullYear()} NiwasNest. All rights reserved.
+            </p>
+            <div className="flex flex-wrap justify-center md:justify-end space-x-6 text-sm">
+              <Link href="/terms" className="hover:text-white transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">
+                Privacy
+              </Link>
+              <Link href="/cancellation" className="hover:text-white transition-colors">
+                Refunds
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

@@ -40,13 +40,17 @@ export default function SignupPage() {
       if (error) throw error;
 
       if (data.user) {
+        // Use upsert to create or update profile
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: data.user.id,
+            email: data.user.email || email,
             full_name: fullName,
             phone_number: phoneNumber,
-          })
-          .eq('id', data.user.id);
+          }, {
+            onConflict: 'id'
+          });
 
         if (profileError) throw profileError;
       }
@@ -68,10 +72,6 @@ export default function SignupPage() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
         },
       });
 
