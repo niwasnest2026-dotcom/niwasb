@@ -139,6 +139,21 @@ export default function AdminDashboard() {
           </Link>
 
           <Link
+            href="/admin/blog"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                <span className="text-3xl">📝</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Manage Blog</h3>
+                <p className="text-gray-600">Create and manage blog posts</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
             href="/admin/amenities"
             className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
           >

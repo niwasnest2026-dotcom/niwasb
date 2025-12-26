@@ -1,17 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
+  --primary-teal: #3AAFA9;
+  --secondary-teal: #2B7A78;
+  --dark-navy: #17252A;
+  --soft-teal: #DEF2F1;
+  --pure-white: #FEFFFF;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(135deg, #fef4f5 0%, #fef9f3 25%, #f5f3fe 50%, #f0f9ff 75%, #fef4f5 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--dark-navy);
+  /* Remove the background override to let Tailwind classes work */
   min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+  color: var(--dark-navy);
 }
 
 @keyframes gradientShift {
@@ -24,33 +35,91 @@ body {
 }
 
 @layer utilities {
+  .saas-card {
+    background: var(--soft-teal);
+    border: 1px solid rgba(43, 122, 120, 0.1);
+    box-shadow: 0 4px 20px rgba(23, 37, 42, 0.08);
+  }
+
+  .saas-button-primary {
+    background: var(--secondary-teal);
+    color: var(--pure-white);
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  .saas-button-primary:hover {
+    background: var(--dark-navy);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(43, 122, 120, 0.3);
+  }
+
+  .saas-hero {
+    background: linear-gradient(135deg, var(--primary-teal) 0%, var(--secondary-teal) 100%);
+    color: var(--pure-white);
+  }
+
+  .saas-section {
+    background: var(--soft-teal);
+    color: var(--dark-navy);
+  }
+
+  .saas-nav {
+    background: var(--dark-navy);
+    color: var(--pure-white);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(58, 175, 169, 0.2);
+  }
+
   .glass {
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(222, 242, 241, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(43, 122, 120, 0.2);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(222, 242, 241, 0.95);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(43, 122, 120, 0.3);
   }
 
   .glass-card {
-    background: rgba(255, 255, 255, 0.65);
+    background: rgba(222, 242, 241, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    border: 1px solid rgba(43, 122, 120, 0.2);
+    box-shadow: 0 8px 32px rgba(23, 37, 42, 0.1);
   }
 
   .glass-badge {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(43, 122, 120, 0.1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(43, 122, 120, 0.2);
+    color: var(--secondary-teal);
+  }
+
+  .glow-teal {
+    box-shadow: 0 0 20px rgba(58, 175, 169, 0.4), 0 0 40px rgba(58, 175, 169, 0.2);
+  }
+
+  .glow-secondary {
+    box-shadow: 0 0 15px rgba(43, 122, 120, 0.3), 0 0 30px rgba(43, 122, 120, 0.15);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--primary-teal), var(--secondary-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border: 2px solid transparent;
+    background: linear-gradient(var(--soft-teal), var(--soft-teal)) padding-box,
+                linear-gradient(135deg, var(--primary-teal), var(--secondary-teal)) border-box;
   }
 
   .glow-amber {
@@ -73,5 +142,47 @@ body {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Additional teal color utilities */
+  .bg-teal-primary {
+    background-color: #3AAFA9;
+  }
+
+  .bg-teal-secondary {
+    background-color: #2B7A78;
+  }
+
+  .bg-teal-soft {
+    background-color: #DEF2F1;
+  }
+
+  .text-teal-primary {
+    color: #3AAFA9;
+  }
+
+  .text-teal-secondary {
+    color: #2B7A78;
+  }
+
+  .text-navy-dark {
+    color: #17252A;
+  }
+
+  .border-teal-primary {
+    border-color: #3AAFA9;
+  }
+
+  .border-teal-secondary {
+    border-color: #2B7A78;
+  }
+
+  /* Hover states */
+  .hover\:bg-teal-secondary:hover {
+    background-color: #2B7A78;
+  }
+
+  .hover\:bg-teal-primary:hover {
+    background-color: #3AAFA9;
   }
 }

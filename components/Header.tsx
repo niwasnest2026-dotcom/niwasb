@@ -41,19 +41,25 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <header className="sticky top-0 z-50 w-full border-b backdrop-blur supports-[backdrop-filter]:backdrop-blur" style={{ 
+        backgroundColor: 'rgba(43, 122, 120, 0.95)', 
+        borderBottomColor: 'rgba(58, 175, 169, 0.3)' 
+      }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-neutral-900">
-                <span className="text-primary">Niwas</span> Nest
+              <span className="text-2xl font-bold" style={{ color: '#FEFFFF' }}>
+                <span style={{ color: '#DEF2F1' }}>Niwas</span> Nest
               </span>
             </Link>
 
             <nav className="hidden md:flex items-center space-x-6">
               <Link
                 href="/listings"
-                className="text-neutral-700 hover:text-neutral-900 font-medium transition-colors"
+                className="font-medium transition-colors"
+                style={{ color: '#DEF2F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#FEFFFF'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#DEF2F1'}
               >
                 Browse Listings
               </Link>
@@ -61,7 +67,10 @@ export default function Header() {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="text-neutral-700 hover:text-neutral-900 font-medium transition-colors"
+                  className="font-medium transition-colors"
+                  style={{ color: '#DEF2F1' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#FEFFFF'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#DEF2F1'}
                 >
                   Admin
                 </Link>
@@ -69,12 +78,15 @@ export default function Header() {
 
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <span className="text-neutral-600 text-sm truncate max-w-[150px]">
+                  <span className="text-sm truncate max-w-[150px]" style={{ color: 'rgba(222, 242, 241, 0.8)' }}>
                     {user.email}
                   </span>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors"
+                    className="px-4 py-2 text-sm font-medium transition-colors"
+                    style={{ color: '#DEF2F1' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#FEFFFF'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#DEF2F1'}
                   >
                     Logout
                   </button>
@@ -83,13 +95,25 @@ export default function Header() {
                 <div className="flex items-center space-x-3">
                   <Link
                     href="/login"
-                    className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors"
+                    className="px-4 py-2 text-sm font-medium transition-colors"
+                    style={{ color: '#DEF2F1' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#FEFFFF'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#DEF2F1'}
                   >
                     Login
                   </Link>
                   <Link
                     href="/signup"
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                    style={{ color: '#17252A', backgroundColor: '#DEF2F1' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#FEFFFF';
+                      e.currentTarget.style.color = '#17252A';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#DEF2F1';
+                      e.currentTarget.style.color = '#17252A';
+                    }}
                   >
                     Sign Up
                   </Link>
@@ -99,7 +123,8 @@ export default function Header() {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-neutral-700 hover:text-neutral-900 p-2"
+              className="md:hidden p-2"
+              style={{ color: '#DEF2F1' }}
             >
               {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
             </button>
@@ -107,12 +132,21 @@ export default function Header() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-white">
+          <div className="md:hidden border-t" style={{ backgroundColor: '#2B7A78', borderTopColor: 'rgba(58, 175, 169, 0.3)' }}>
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
               <Link
                 href="/listings"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50 rounded-lg font-medium transition-colors"
+                className="block px-4 py-2 rounded-lg font-medium transition-colors"
+                style={{ color: '#DEF2F1' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(222, 242, 241, 0.1)';
+                  e.currentTarget.style.color = '#FEFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#DEF2F1';
+                }}
               >
                 Browse Listings
               </Link>
@@ -121,7 +155,16 @@ export default function Header() {
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50 rounded-lg font-medium transition-colors"
+                  className="block px-4 py-2 rounded-lg font-medium transition-colors"
+                  style={{ color: '#DEF2F1' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(222, 242, 241, 0.1)';
+                    e.currentTarget.style.color = '#FEFFFF';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#DEF2F1';
+                  }}
                 >
                   Admin
                 </Link>
@@ -129,7 +172,10 @@ export default function Header() {
 
               {user ? (
                 <>
-                  <div className="px-4 py-2 text-neutral-600 text-sm border-t pt-3">
+                  <div className="px-4 py-2 text-sm border-t pt-3" style={{ 
+                    color: 'rgba(222, 242, 241, 0.8)', 
+                    borderTopColor: 'rgba(58, 175, 169, 0.3)' 
+                  }}>
                     {user.email}
                   </div>
                   <button
@@ -137,24 +183,51 @@ export default function Header() {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50 rounded-lg font-medium transition-colors"
+                    className="block w-full text-left px-4 py-2 rounded-lg font-medium transition-colors"
+                    style={{ color: '#DEF2F1' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(222, 242, 241, 0.1)';
+                      e.currentTarget.style.color = '#FEFFFF';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#DEF2F1';
+                    }}
                   >
                     Logout
                   </button>
                 </>
               ) : (
-                <div className="flex flex-col space-y-2 pt-3 border-t">
+                <div className="flex flex-col space-y-2 pt-3" style={{ borderTop: '1px solid rgba(58, 175, 169, 0.3)' }}>
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-50 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                    style={{ color: '#DEF2F1' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(222, 242, 241, 0.1)';
+                      e.currentTarget.style.color = '#FEFFFF';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#DEF2F1';
+                    }}
                   >
                     Login
                   </Link>
                   <Link
                     href="/signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                    style={{ color: '#17252A', backgroundColor: '#DEF2F1' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#FEFFFF';
+                      e.currentTarget.style.color = '#17252A';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#DEF2F1';
+                      e.currentTarget.style.color = '#17252A';
+                    }}
                   >
                     Sign Up
                   </Link>

@@ -27,7 +27,6 @@ export interface Database {
           instant_book: boolean | null
           verified: boolean | null
           secure_booking: boolean | null
-          gender_preference: string | null
           featured_image: string | null
           created_at: string | null
         }
@@ -48,7 +47,6 @@ export interface Database {
           instant_book?: boolean | null
           verified?: boolean | null
           secure_booking?: boolean | null
-          gender_preference?: string | null
           featured_image?: string | null
           created_at?: string | null
         }
@@ -69,7 +67,6 @@ export interface Database {
           instant_book?: boolean | null
           verified?: boolean | null
           secure_booking?: boolean | null
-          gender_preference?: string | null
           featured_image?: string | null
           created_at?: string | null
         }

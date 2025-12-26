@@ -37,7 +37,7 @@ const amenityIcons: Record<string, any> = {
 export default function PropertyDetails() {
   const params = useParams();
   const router = useRouter();
-  const [propertyId, setPropertyId] = useState<string | null>(null);
+  const propertyId = params.id as string;
   const [property, setProperty] = useState<PropertyWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -47,16 +47,7 @@ export default function PropertyDetails() {
     contact_email: 'niwasnest2026@gmail.com'
   });
 
-  // Handle params safely
   useEffect(() => {
-    if (params?.id) {
-      setPropertyId(params.id as string);
-    }
-  }, [params]);
-
-  useEffect(() => {
-    if (!propertyId) return;
-
     async function fetchData() {
       try {
         const [propertyResult, settingsResult] = await Promise.all([
@@ -73,7 +64,7 @@ export default function PropertyDetails() {
                 images:room_images(*)
               )
             `)
-            .eq('id', propertyId!)
+            .eq('id', propertyId)
             .maybeSingle(),
           supabase
             .from('site_settings')
@@ -108,30 +99,16 @@ export default function PropertyDetails() {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        // Use window.location instead of router if router is not available
-        if (typeof window !== 'undefined') {
-          window.location.href = '/';
-        }
+        router.push('/');
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [propertyId]);
+  }, [propertyId, router]);
 
-  const handleBackClick = () => {
-    try {
-      router.push('/');
-    } catch (error) {
-      // Fallback if router is not available
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    }
-  };
-
-  if (loading || !propertyId) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -157,15 +134,20 @@ export default function PropertyDetails() {
     : [{ image_url: property.featured_image || '/placeholder.jpg', display_order: 0 }];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-6xl mx-auto">
-        <button
-          onClick={handleBackClick}
-          className="inline-flex items-center text-primary hover:underline mb-6"
+        <Link
+          href="/"
+          className="inline-flex items-center hover:underline mb-6"
+          style={{ color: '#2B7A78' }}
         >
           <FaArrowLeft className="mr-2" />
           Back to listings
-        </button>
+        </Link>
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="relative h-96 bg-gray-200">
@@ -196,59 +178,56 @@ export default function PropertyDetails() {
             )}
 
             <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-              {(property as any).gender_preference && (
-                <span className="px-3 py-1.5 bg-purple-500 text-white text-sm font-bold rounded-full">
-                  {(property as any).gender_preference}
+              {property.instant_book && (
+                <span className="px-3 py-1.5 text-white text-sm font-bold rounded-full" style={{ backgroundColor: '#3AAFA9' }}>
+                  INSTANT BOOK
                 </span>
               )}
               {property.property_type && (
-                <span className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-orange-500 text-white text-sm font-bold rounded-full">
+                <span className="px-3 py-1.5 text-white text-sm font-bold rounded-full" style={{ background: 'linear-gradient(135deg, #3AAFA9, #2B7A78)' }}>
                   {property.property_type}
                 </span>
               )}
             </div>
-
-            {/* Rating Overlay on Image */}
-            {property.rating && property.rating > 0 && (
-              <div className="absolute bottom-4 right-4 flex items-center space-x-1 px-3 py-2 rounded-lg bg-black/70 backdrop-blur-md text-white shadow-lg">
-                <FaStar className="text-amber-400 text-sm" />
-                <span className="font-bold text-sm">{property.rating}</span>
-                {property.review_count && property.review_count > 0 && (
-                  <span className="text-xs text-gray-300">({property.review_count})</span>
-                )}
-              </div>
-            )}
           </div>
 
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
               <div className="flex-1">
-                {/* Verified/Secure Badges - Above Property Name */}
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {property.verified && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
-                      <MdVerified className="text-lg" />
-                      <span>Verified</span>
-                    </div>
-                  )}
-                  {property.secure_booking && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold">
-                      <MdSecurity className="text-lg" />
-                      <span>Secure Booking</span>
-                    </div>
-                  )}
-                </div>
-
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                   {property.name}
                 </h1>
                 <div className="flex items-center text-gray-600 mb-4">
-                  <FaMapMarkerAlt className="mr-2 text-rose-500" />
+                  <FaMapMarkerAlt className="mr-2" style={{ color: '#2B7A78' }} />
                   <span className="text-lg">
                     {property.area && property.city
                       ? `${property.area}, ${property.city}`
                       : property.city || property.area || property.address}
                   </span>
+                </div>
+
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {property.verified && (
+                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(58, 175, 169, 0.15)', borderColor: 'rgba(58, 175, 169, 0.3)', border: '1px solid', color: '#2B7A78' }}>
+                      <MdVerified className="text-lg" style={{ color: '#3AAFA9' }} />
+                      <span>Verified</span>
+                    </div>
+                  )}
+                  {property.secure_booking && (
+                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(43, 122, 120, 0.15)', borderColor: 'rgba(43, 122, 120, 0.3)', border: '1px solid', color: '#3AAFA9' }}>
+                      <MdSecurity className="text-lg" style={{ color: '#2B7A78' }} />
+                      <span>Secure Booking</span>
+                    </div>
+                  )}
+                  {property.rating && property.rating > 0 && (
+                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full border" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)', borderColor: 'rgba(58, 175, 169, 0.3)' }}>
+                      <FaStar style={{ color: '#3AAFA9' }} />
+                      <span className="font-bold text-gray-900">{property.rating}</span>
+                      {property.review_count && property.review_count > 0 && (
+                        <span className="text-gray-600 text-sm">({property.review_count} reviews)</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -260,7 +239,10 @@ export default function PropertyDetails() {
                       roomSection.scrollIntoView({ behavior: 'smooth' });
                     }
                   }}
-                  className="w-full px-8 py-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
+                  className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
+                  style={{ backgroundColor: '#3AAFA9' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
                 >
                   Choose Room Type
                 </button>
@@ -327,7 +309,7 @@ export default function PropertyDetails() {
                   <div className="bg-gray-50 rounded-xl p-6">
                     <h3 className="font-semibold text-gray-900 mb-3">Availability</h3>
                     <div className="flex items-center space-x-2">
-                      <FaClock className="text-rose-500" />
+                      <FaClock style={{ color: '#2B7A78' }} />
                       <span className="text-gray-700">
                         Available for {(property as any).available_months} month{(property as any).available_months > 1 ? 's' : ''}
                       </span>
@@ -407,14 +389,14 @@ export default function PropertyDetails() {
                         >
                           <div className="text-center">
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{sharingType}</h3>
-                            <div className="text-2xl font-bold text-primary mb-1">
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#3AAFA9' }}>
                               ₹{lowestPrice.toLocaleString()}
                             </div>
                             <div className="text-sm text-gray-600 mb-4">per person/month</div>
                             
                             {availableRooms.length > 0 ? (
                               <div className="mb-4">
-                                <span className="text-sm text-green-600 font-medium">
+                                <span className="text-sm font-medium" style={{ color: '#2B7A78' }}>
                                   {availableRooms.length} room{availableRooms.length > 1 ? 's' : ''} available
                                 </span>
                               </div>
@@ -427,7 +409,10 @@ export default function PropertyDetails() {
                             {availableRooms.length > 0 ? (
                               <Link
                                 href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}`}
-                                className="block w-full px-4 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-all"
+                                className="block w-full px-4 py-2 text-white font-semibold rounded-lg transition-all"
+                                style={{ backgroundColor: '#3AAFA9' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
                               >
                                 Book Now
                               </Link>

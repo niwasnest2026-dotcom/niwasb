@@ -2,64 +2,64 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaClock, FaCalendar, FaUsers, FaSearch, FaChevronDown, FaLocationArrow, FaSpinner, FaHistory, FaBuilding } from 'react-icons/fa';
+import { 
+  FaMapMarkerAlt, FaSearch, FaBuilding, FaLocationArrow, 
+  FaSpinner, FaHistory 
+} from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
-
-const popularCities = [
-  'Goa', 'Bangalore', 'New Delhi', 'Mumbai', 'Pune', 'Chennai', 
-  'Hyderabad', 'Jaipur', 'Gurgaon', 'Agra', 'Ahmedabad', 'Kolkata',
-  'Kochi', 'Chandigarh', 'Indore', 'Bhopal', 'Lucknow', 'Nagpur'
-];
-
-const durations = ['1 Month', '3 Months', '6 Months', '12 Months'];
-const guestOptions = ['1 Guest', '2 Guests', '3 Guests', '4+ Guests'];
 
 interface Property {
   id: string;
   name: string;
   city: string;
-  area: string | null;
+  area: string;
+  address: string;
   price: number;
   property_type: string;
 }
 
+const popularCities = [
+  'Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 
+  'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur'
+];
+
 export default function SearchForm() {
   const router = useRouter();
   const [city, setCity] = useState('');
-  const [duration, setDuration] = useState('1 Month');
-  const [moveIn, setMoveIn] = useState('');
-  const [guests, setGuests] = useState('1 Guest');
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filteredCities, setFilteredCities] = useState<string[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  
   const cityInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // Load recent searches from localStorage
   useEffect(() => {
-    // Load recent searches from localStorage
     const saved = localStorage.getItem('recentCitySearches');
     if (saved) {
       setRecentSearches(JSON.parse(saved));
     }
+  }, []);
 
-    // Check if geolocation is supported and get permission status
+  // Check geolocation permission
+  useEffect(() => {
     if ('geolocation' in navigator && 'permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
         setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
       });
     }
+  }, []);
 
-    // Close suggestions when clicking outside
+  // Close suggestions when clicking outside
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        suggestionsRef.current &&
+        suggestionsRef.current && 
         !suggestionsRef.current.contains(event.target as Node) &&
-        cityInputRef.current &&
-        !cityInputRef.current.contains(event.target as Node)
+        !cityInputRef.current?.contains(event.target as Node)
       ) {
         setShowSuggestions(false);
       }
@@ -69,37 +69,53 @@ export default function SearchForm() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    // Filter cities based on input
-    if (city.trim()) {
-      const filtered = popularCities.filter(cityName =>
-        cityName.toLowerCase().includes(city.toLowerCase())
-      );
-      setFilteredCities(filtered);
-      
-      // Only fetch properties if the entered city matches exactly with popular cities
-      // or if it's a complete city name (more than 3 characters and no exact match in popular cities)
-      const exactMatch = popularCities.find(cityName => 
-        cityName.toLowerCase() === city.toLowerCase()
-      );
-      
-      if (exactMatch || (city.trim().length > 3 && filtered.length === 0)) {
-        fetchProperties(city.trim());
-      } else {
-        setProperties([]);
-      }
+  const filteredCities = popularCities.filter(cityName =>
+    cityName.toLowerCase().includes(city.toLowerCase())
+  );
+
+  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCity(value);
+    
+    if (value.trim().length >= 2) {
+      fetchProperties(value);
     } else {
-      setFilteredCities([]);
       setProperties([]);
     }
-  }, [city]);
+  };
+
+  const handleCityInputFocus = () => {
+    setShowSuggestions(true);
+  };
+
+  const handleCitySelect = (selectedCity: string) => {
+    setCity(selectedCity);
+    setShowSuggestions(false);
+    setProperties([]);
+  };
+
+  const handlePropertySelect = (property: Property) => {
+    router.push(`/property/${property.id}`);
+  };
+
+  const requestLocation = async () => {
+    if (locationPermission === 'denied') {
+      alert('Location access is denied. Please enable it in your browser settings.');
+      return;
+    }
+    
+    await getCurrentLocation();
+  };
 
   const fetchProperties = async (searchCity: string) => {
+    if (!searchCity.trim()) return;
+    
     setIsLoadingProperties(true);
+    
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, name, city, area, price, property_type')
+        .select('id, name, city, area, address, price, property_type')
         .or(`city.ilike.%${searchCity}%,area.ilike.%${searchCity}%,name.ilike.%${searchCity}%`)
         .limit(6);
 
@@ -147,63 +163,21 @@ export default function SearchForm() {
         
         if (address) {
           // Extract city information
-          const detectedCity = address.city || address.town || address.village || address.county || address.state_district;
+          const detectedCity = address.city || address.town || address.village || address.state_district || address.state;
           
           if (detectedCity) {
             setCity(detectedCity);
             setShowSuggestions(false);
+            fetchProperties(detectedCity);
           }
         }
       }
     } catch (error) {
       console.error('Error getting location:', error);
+      alert('Unable to get your location. Please enter your city manually.');
     } finally {
       setIsGettingLocation(false);
     }
-  };
-
-  const requestLocation = () => {
-    if (locationPermission === 'denied') {
-      alert('Location access is denied. Please enable location permissions in your browser settings to auto-detect your city.');
-      return;
-    }
-    getCurrentLocation();
-  };
-
-  const handleCitySelect = (selectedCity: string) => {
-    setCity(selectedCity);
-    setShowSuggestions(false);
-    
-    // Add to recent searches
-    const updatedRecent = [selectedCity, ...recentSearches.filter(c => c !== selectedCity)].slice(0, 3);
-    setRecentSearches(updatedRecent);
-    localStorage.setItem('recentCitySearches', JSON.stringify(updatedRecent));
-  };
-
-  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCity(e.target.value);
-    setShowSuggestions(true);
-  };
-
-  const handleCityInputFocus = () => {
-    setShowSuggestions(true);
-  };
-
-  const handlePropertySelect = (property: Property) => {
-    router.push(`/property/${property.id}`);
-  };
-
-  // Calculate move-out date based on move-in date and duration
-  const calculateMoveOutDate = () => {
-    if (!moveIn || !duration) return 'Auto-calculated';
-    
-    const moveInDate = new Date(moveIn);
-    const durationMonths = parseInt(duration.split(' ')[0]);
-    
-    const moveOutDate = new Date(moveInDate);
-    moveOutDate.setMonth(moveOutDate.getMonth() + durationMonths);
-    
-    return moveOutDate.toISOString().split('T')[0];
   };
 
   const handleSearch = () => {
@@ -216,57 +190,54 @@ export default function SearchForm() {
 
     const params = new URLSearchParams();
     if (city) params.set('city', city);
-    if (duration) params.set('duration', duration);
-    if (moveIn) params.set('moveIn', moveIn);
-    if (guests) params.set('guests', guests);
 
     router.push(`/listings?${params.toString()}`);
   };
 
   return (
-    <div className="glass-card rounded-3xl shadow-glass-lg p-4 sm:p-6 max-w-2xl mx-auto">
-      <div className="space-y-3 sm:space-y-4">
+    <div className="saas-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-3xl mx-auto border-gradient">
+      <div className="space-y-4 sm:space-y-6">
         <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            CITY
+          <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+            Where do you want to stay?
           </label>
           <div className="relative">
-            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm z-10" />
+            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
             <input
               ref={cityInputRef}
               type="text"
               value={city}
               onChange={handleCityInputChange}
               onFocus={handleCityInputFocus}
-              placeholder="Search city, area or hotel"
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 bg-transparent placeholder-neutral-400 text-sm sm:text-base"
+              placeholder="Search city, area or property"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl placeholder-neutral/50 text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
             />
             
             {/* City Suggestions Dropdown */}
             {showSuggestions && (
               <div 
                 ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto mt-1"
+                className="absolute top-full left-0 right-0 saas-card border-2 border-primary/10 rounded-lg sm:rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto mt-2"
               >
                 {/* Use Current Location Option */}
                 {locationPermission !== 'denied' && (
                   <button
                     onClick={requestLocation}
                     disabled={isGettingLocation}
-                    className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3 border-b border-neutral-100 disabled:opacity-50"
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 border-b border-primary/10 disabled:opacity-50 transition-all duration-300"
                   >
-                    <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg sm:rounded-xl flex items-center justify-center">
                       {isGettingLocation ? (
-                        <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                        <FaSpinner className="animate-spin text-neutral-white text-sm sm:text-lg" />
                       ) : (
-                        <FaLocationArrow className="text-blue-500 text-sm" />
+                        <FaLocationArrow className="text-neutral-white text-sm sm:text-lg" />
                       )}
                     </div>
                     <div>
-                      <div className="font-medium text-blue-600">
+                      <div className="font-semibold text-secondary text-base sm:text-lg">
                         {isGettingLocation ? 'Getting location...' : 'Use current location'}
                       </div>
-                      <div className="text-sm text-neutral-500">Properties near me</div>
+                      <div className="text-neutral/70 text-sm sm:text-base">Properties near me</div>
                     </div>
                   </button>
                 )}
@@ -274,20 +245,20 @@ export default function SearchForm() {
                 {/* Recent Searches */}
                 {recentSearches.length > 0 && !city.trim() && (
                   <>
-                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
                       Recent searches
                     </div>
                     {recentSearches.map((recentCity, index) => (
                       <button
                         key={`recent-${index}`}
                         onClick={() => handleCitySelect(recentCity)}
-                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
                       >
-                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                          <FaHistory className="text-neutral-500 text-sm" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-neutral-light rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <FaHistory className="text-secondary text-sm sm:text-lg" />
                         </div>
                         <div>
-                          <div className="font-medium text-neutral-900">{recentCity}</div>
+                          <div className="font-semibold text-neutral text-base sm:text-lg">{recentCity}</div>
                         </div>
                       </button>
                     ))}
@@ -297,22 +268,22 @@ export default function SearchForm() {
                 {/* Locality Suggestions - Show first when typing */}
                 {city.trim() && filteredCities.length > 0 && (
                   <>
-                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
                       Cities
                     </div>
                     {filteredCities.slice(0, 5).map((cityName, index) => (
                       <button
                         key={`filtered-${index}`}
                         onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
                       >
-                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-secondary text-sm sm:text-lg" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-neutral-900">{cityName}</div>
+                          <div className="font-semibold text-neutral text-base sm:text-lg">{cityName}</div>
                         </div>
-                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
+                        <div className="text-xs sm:text-sm text-neutral/70 bg-primary/10 px-2 sm:px-3 py-1 rounded-lg font-medium">
                           City
                         </div>
                       </button>
@@ -323,28 +294,31 @@ export default function SearchForm() {
                 {/* Properties from Database - Show only for complete city names */}
                 {city.trim() && properties.length > 0 && (
                   <>
-                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50 flex items-center justify-between">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide flex items-center justify-between">
                       <span>Properties in {city}</span>
-                      {isLoadingProperties && <FaSpinner className="animate-spin text-sm" />}
+                      {isLoadingProperties && <FaSpinner className="animate-spin text-base sm:text-lg" />}
                     </div>
                     {properties.map((property) => (
                       <button
                         key={property.id}
                         onClick={() => handlePropertySelect(property)}
-                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3 border-b border-neutral-50 last:border-b-0"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 border-b border-primary/5 last:border-b-0 transition-all duration-300"
                       >
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <FaBuilding className="text-primary text-sm" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-secondary to-primary rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <FaBuilding className="text-neutral-white text-sm sm:text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-neutral-900 truncate">{property.name}</div>
-                          <div className="text-sm text-neutral-500 flex items-center space-x-1">
+                          <div className="font-semibold text-neutral text-base sm:text-lg truncate">{property.name}</div>
+                          <div className="text-neutral/70 text-sm sm:text-base mb-1">
+                            <span className="truncate">{property.address}</span>
+                          </div>
+                          <div className="text-neutral/70 flex items-center space-x-2 text-sm sm:text-base">
                             <span>{property.area || property.city}</span>
-                            <span className="text-neutral-300">•</span>
-                            <span className="font-medium text-primary">₹{property.price?.toLocaleString()}/month</span>
+                            <span className="text-primary/50">•</span>
+                            <span className="font-bold text-secondary">₹{property.price?.toLocaleString()}/month</span>
                           </div>
                         </div>
-                        <div className="text-xs text-neutral-400 bg-neutral-100 px-2 py-1 rounded">
+                        <div className="text-xs sm:text-sm text-neutral/70 bg-secondary/10 px-2 sm:px-3 py-1 rounded-lg font-medium">
                           Property
                         </div>
                       </button>
@@ -355,20 +329,20 @@ export default function SearchForm() {
                 {/* Popular Cities */}
                 {!city.trim() && (
                   <>
-                    <div className="px-4 py-2 text-xs font-medium text-neutral-500 uppercase bg-neutral-50">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
                       Popular cities
                     </div>
                     {popularCities.slice(0, 10).map((cityName, index) => (
                       <button
                         key={`popular-${index}`}
                         onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 py-3 text-left hover:bg-neutral-50 flex items-center space-x-3"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
                       >
-                        <div className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center">
-                          <FaMapMarkerAlt className="text-neutral-500 text-sm" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <FaMapMarkerAlt className="text-secondary text-sm sm:text-lg" />
                         </div>
                         <div>
-                          <div className="font-medium text-neutral-900">{cityName}</div>
+                          <div className="font-semibold text-neutral text-base sm:text-lg">{cityName}</div>
                         </div>
                       </button>
                     ))}
@@ -377,17 +351,17 @@ export default function SearchForm() {
 
                 {/* No Results */}
                 {city.trim() && !isLoadingProperties && properties.length === 0 && filteredCities.length === 0 && (
-                  <div className="px-4 py-6 text-center text-neutral-500">
-                    <div className="text-sm">No cities or properties found matching "{city}"</div>
-                    <div className="text-xs mt-1">Try searching for a popular city name</div>
+                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center text-neutral/70">
+                    <div className="text-base sm:text-lg font-medium">No cities or properties found matching "{city}"</div>
+                    <div className="text-sm mt-2">Try searching for a popular city name</div>
                   </div>
                 )}
 
                 {/* Loading State */}
                 {city.trim() && isLoadingProperties && (
-                  <div className="px-4 py-6 text-center text-neutral-500">
-                    <FaSpinner className="animate-spin mx-auto mb-2" />
-                    <div className="text-sm">Searching for properties in {city}...</div>
+                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center text-neutral/70">
+                    <FaSpinner className="animate-spin mx-auto mb-3 text-xl sm:text-2xl text-secondary" />
+                    <div className="text-base sm:text-lg font-medium">Searching for properties in {city}...</div>
                   </div>
                 )}
               </div>
@@ -395,84 +369,12 @@ export default function SearchForm() {
           </div>
         </div>
 
-        <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            DURATION
-          </label>
-          <div className="relative">
-            <FaClock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-8 sm:pr-10 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 appearance-none bg-transparent text-sm sm:text-base"
-            >
-              {durations.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-            <FaChevronDown className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none text-sm" />
-          </div>
-        </div>
-
-        <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            MOVE-IN
-          </label>
-          <div className="relative">
-            <FaCalendar className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
-            <input
-              type="date"
-              value={moveIn}
-              onChange={(e) => setMoveIn(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 bg-transparent text-sm sm:text-base"
-            />
-          </div>
-        </div>
-
-        <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            MOVE-OUT
-          </label>
-          <div className="relative">
-            <FaCalendar className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
-            <input
-              type="text"
-              value={calculateMoveOutDate()}
-              disabled
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-b border-neutral-200 outline-none text-neutral-400 bg-transparent text-sm sm:text-base"
-            />
-          </div>
-        </div>
-
-        <div className="relative">
-          <label className="block text-xs sm:text-sm font-medium text-neutral-600 mb-1.5 sm:mb-2 uppercase">
-            GUESTS
-          </label>
-          <div className="relative">
-            <FaUsers className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-sm" />
-            <select
-              value={guests}
-              onChange={(e) => setGuests(e.target.value)}
-              className="w-full pl-10 sm:pl-12 pr-8 sm:pr-10 py-2.5 sm:py-3 border-b border-neutral-200 focus:border-accent outline-none text-neutral-900 appearance-none bg-transparent text-sm sm:text-base"
-            >
-              {guestOptions.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-            <FaChevronDown className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none text-sm" />
-          </div>
-        </div>
-
         <button
           onClick={handleSearch}
-          className="w-full gradient-glass text-primary hover:glow-primary py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 flex items-center justify-center space-x-2 mt-4 sm:mt-6 shadow-glass hover:shadow-glass-lg"
+          className="saas-button-primary w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
         >
           <FaSearch />
-          <span>Search</span>
+          <span>Search Properties</span>
         </button>
       </div>
     </div>

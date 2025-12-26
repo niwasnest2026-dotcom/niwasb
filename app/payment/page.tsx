@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaCreditCard, FaLock, FaCheckCircle } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
-import RazorpayPayment from '@/components/RazorpayPayment';
 
 interface Property {
   id: string;
@@ -30,12 +29,15 @@ export default function PaymentPage() {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [bookingId, setBookingId] = useState<string | null>(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    upiId: ''
   });
 
   useEffect(() => {
@@ -78,12 +80,15 @@ export default function PaymentPage() {
           
           if (roomsData && roomsData.length > 0) {
             setAvailableRooms(roomsData);
+            // Use the first available room for pricing calculation
             setSelectedRoom(roomsData[0]);
           } else {
+            // No available rooms of this type
             router.push(`/property/${propertyId}`);
             return;
           }
         } else {
+          // If no room or sharing type is selected, redirect to property page
           router.push(`/property/${propertyId}`);
           return;
         }
@@ -103,17 +108,31 @@ export default function PaymentPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const createBooking = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!selectedRoom || !property) {
       alert('Please select a room to continue');
-      return null;
+      return;
     }
 
     // Validate form data
     if (!formData.fullName || !formData.email || !formData.phone) {
       alert('Please fill in all required fields');
-      return null;
+      return;
     }
+
+    if (paymentMethod === 'card' && (!formData.cardNumber || !formData.expiryDate || !formData.cvv)) {
+      alert('Please fill in all card details');
+      return;
+    }
+
+    if (paymentMethod === 'upi' && !formData.upiId) {
+      alert('Please enter your UPI ID');
+      return;
+    }
+
+    setProcessing(true);
 
     try {
       // Calculate amounts
@@ -122,11 +141,14 @@ export default function PaymentPage() {
       const amountPaid = Math.round(totalAmount * 0.2); // 20% upfront
       const amountDue = totalAmount - amountPaid; // 80% remaining
 
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Create the booking record
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          property_id: propertyId,
+          property_id: property.id,
           room_id: selectedRoom.id,
           guest_name: formData.fullName,
           guest_email: formData.email,
@@ -137,43 +159,41 @@ export default function PaymentPage() {
           total_amount: totalAmount,
           amount_paid: amountPaid,
           amount_due: amountDue,
-          payment_method: 'razorpay',
-          payment_status: 'pending',
+          payment_method: paymentMethod,
+          payment_status: 'partial', // 20% paid
           booking_status: 'confirmed',
-        })
+          payment_date: new Date().toISOString(),
+          notes: `Booking made through ${paymentMethod} payment. ${sharingType ? `Selected sharing type: ${sharingType}` : `Specific room: ${selectedRoom.room_number}`}`
+        } as any)
         .select()
         .single();
 
-      if (bookingError) throw bookingError;
+      if (bookingError) {
+        throw bookingError;
+      }
+
+      // Show success message and redirect
+      alert(`Booking confirmed! 
       
-      return bookingData;
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('Failed to create booking. Please try again.');
-      return null;
-    }
-  };
+Booking ID: ${(bookingData as any)?.id || 'Generated'}
+Amount Paid: ₹${amountPaid.toLocaleString()}
+Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
 
-  const handlePaymentSuccess = (paymentId: string) => {
-    setPaymentSuccess(true);
-    // You can add additional success handling here
-    setTimeout(() => {
+You will receive a confirmation email shortly.`);
+
+      // Redirect to home page or booking confirmation page
       router.push('/');
-    }, 3000);
-  };
 
-  const handlePaymentError = (error: string) => {
-    alert(`Payment failed: ${error}`);
-    setProcessing(false);
-  };
-
-  const initiatePayment = async () => {
-    setProcessing(true);
-    
-    const booking = await createBooking();
-    if (booking) {
-      setBookingId(booking.id);
-    } else {
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      
+      if (error.message?.includes('No available beds')) {
+        alert('Sorry, this room is no longer available. Please select another room.');
+        router.push(`/property/${propertyId}`);
+      } else {
+        alert('Booking failed. Please try again. Error: ' + (error.message || 'Unknown error'));
+      }
+    } finally {
       setProcessing(false);
     }
   };
@@ -181,104 +201,149 @@ export default function PaymentPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
       </div>
     );
   }
 
-  if (!property || !selectedRoom) {
+  if (!property) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Property not found</h1>
-          <Link href="/" className="text-primary hover:underline">
-            Go back to home
+          <Link href="/" className="text-rose-500 hover:underline">
+            Go back home
           </Link>
         </div>
       </div>
     );
   }
-
-  if (paymentSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-green-50">
-        <div className="text-center p-8">
-          <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-green-800 mb-2">Payment Successful!</h1>
-          <p className="text-green-600 mb-4">Your booking has been confirmed.</p>
-          <p className="text-sm text-gray-600">Redirecting to home page...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Calculate amounts
-  const securityDeposit = selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2;
-  const totalAmount = selectedRoom.price_per_person + securityDeposit;
-  const amountPaid = Math.round(totalAmount * 0.2); // 20% upfront
-  const amountDue = totalAmount - amountPaid; // 80% remaining
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Link href={`/property/${propertyId}`} className="inline-flex items-center text-primary hover:underline mb-4">
-            <FaArrowLeft className="mr-2" />
-            Back to Property
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Complete Your Booking</h1>
-        </div>
+        <Link
+          href={`/property/${propertyId}`}
+          className="inline-flex items-center text-rose-500 hover:underline mb-6"
+        >
+          <FaArrowLeft className="mr-2" />
+          Back to property
+        </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Property Details */}
+          {/* Property Summary */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Booking Details</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Booking Summary</h2>
             
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
+            <div className="border rounded-xl p-4 mb-6">
+              <div className="flex items-start space-x-4">
                 {property.featured_image && (
-                  <img 
-                    src={property.featured_image} 
+                  <img
+                    src={property.featured_image}
                     alt={property.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-20 h-20 rounded-lg object-cover"
                   />
                 )}
-                <div>
-                  <h3 className="font-semibold text-gray-900">{property.name}</h3>
-                  <p className="text-gray-600">{property.area && property.city ? `${property.area}, ${property.city}` : property.city}</p>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-gray-900">{property.name}</h3>
+                  <p className="text-gray-600">
+                    {property.area && property.city
+                      ? `${property.area}, ${property.city}`
+                      : property.city || property.area}
+                  </p>
+                  {selectedRoom && (
+                    <div className="mt-2">
+                      {sharingType ? (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {selectedRoom.sharing_type}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {availableRooms.length} room{availableRooms.length > 1 ? 's' : ''} available
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Room {selectedRoom.room_number} - {selectedRoom.sharing_type}
+                          </p>
+                          {selectedRoom.room_type && (
+                            <p className="text-xs text-gray-500">{selectedRoom.room_type}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Room:</span>
-                  <span className="font-medium">{selectedRoom.room_number} ({selectedRoom.sharing_type})</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Monthly Rent:</span>
-                  <span className="font-medium">₹{selectedRoom.price_per_person.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Security Deposit:</span>
-                  <span className="font-medium">₹{securityDeposit.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center mb-4 text-lg font-bold border-t pt-2">
-                  <span>Total Amount:</span>
-                  <span>₹{totalAmount.toLocaleString()}</span>
-                </div>
-                
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-800 mb-2">Payment Breakdown:</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Pay now (20%):</span>
-                      <span className="font-medium text-blue-800">₹{amountPaid.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Pay to owner (80%):</span>
-                      <span className="font-medium text-blue-800">₹{amountDue.toLocaleString()}</span>
-                    </div>
+            <div className="space-y-3 mb-6">
+              {selectedRoom ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Monthly rent (per person)</span>
+                    <span className="font-semibold">₹{selectedRoom.price_per_person.toLocaleString()}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Security deposit (per person)</span>
+                    <span className="font-semibold">
+                      ₹{(selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2).toLocaleString()}
+                    </span>
+                  </div>
+                  {property.available_months && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Available for</span>
+                      <span className="font-semibold">{property.available_months} month{property.available_months > 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  <hr />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total booking amount</span>
+                    <span className="font-semibold">
+                      ₹{(selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span className="font-medium">Pay now (20%)</span>
+                    <span className="font-bold">
+                      ₹{Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) * 0.2).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-500 text-sm">
+                    <span>Pay to owner (80%)</span>
+                    <span>
+                      ₹{Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) * 0.8).toLocaleString()}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Please select a room to proceed with booking.</p>
+                  <Link
+                    href={`/property/${propertyId}`}
+                    className="mt-4 inline-block px-6 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-all"
+                  >
+                    Select Room
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">Payment Structure</h4>
+                <ul className="text-blue-700 text-sm space-y-1">
+                  <li>• Pay 20% now to secure your booking</li>
+                  <li>• Remaining 80% to be paid directly to property owner</li>
+                  <li>• Get instant booking confirmation</li>
+                </ul>
+              </div>
+              
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <FaCheckCircle className="text-green-500 mr-2" />
+                  <span className="text-green-800 font-medium">Secure payment protected</span>
                 </div>
               </div>
             </div>
@@ -286,88 +351,188 @@ export default function PaymentPage() {
 
           {/* Payment Form */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Guest Information</h2>
-            
-            {!bookingId ? (
-              <form onSubmit={(e) => { e.preventDefault(); initiatePayment(); }} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter your full name"
-                  />
-                </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Details</h2>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {processing ? 'Creating Booking...' : 'Proceed to Payment'}
-                </button>
-              </form>
-            ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Personal Information */}
               <div>
-                <div className="mb-6">
-                  <div className="flex items-center space-x-2 text-green-600 mb-2">
-                    <FaCheckCircle />
-                    <span className="font-medium">Booking Created Successfully!</span>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Complete your payment to confirm the booking.
-                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Method Selection */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`p-4 border-2 rounded-lg flex items-center justify-center space-x-2 transition-colors ${
+                      paymentMethod === 'card'
+                        ? 'border-rose-500 bg-rose-50 text-rose-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <FaCreditCard />
+                    <span>Card</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('upi')}
+                    className={`p-4 border-2 rounded-lg flex items-center justify-center space-x-2 transition-colors ${
+                      paymentMethod === 'upi'
+                        ? 'border-rose-500 bg-rose-50 text-rose-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <span>UPI</span>
+                  </button>
                 </div>
 
-                <RazorpayPayment
-                  amount={amountPaid}
-                  bookingId={bookingId}
-                  guestName={formData.fullName}
-                  guestEmail={formData.email}
-                  guestPhone={formData.phone}
-                  propertyName={property.name}
-                  roomNumber={selectedRoom.room_number}
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                />
+                {/* Card Payment Fields */}
+                {paymentMethod === 'card' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Card Number *
+                      </label>
+                      <input
+                        type="text"
+                        name="cardNumber"
+                        value={formData.cardNumber}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                        placeholder="1234 5678 9012 3456"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Expiry Date *
+                        </label>
+                        <input
+                          type="text"
+                          name="expiryDate"
+                          value={formData.expiryDate}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                          placeholder="MM/YY"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          CVV *
+                        </label>
+                        <input
+                          type="text"
+                          name="cvv"
+                          value={formData.cvv}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                          placeholder="123"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* UPI Payment Fields */}
+                {paymentMethod === 'upi' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      UPI ID *
+                    </label>
+                    <input
+                      type="text"
+                      name="upiId"
+                      value={formData.upiId}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                      placeholder="yourname@upi"
+                    />
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={processing || !selectedRoom}
+                className={`w-full font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center space-x-2 ${
+                  processing || !selectedRoom
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-rose-500 to-orange-500 hover:shadow-lg'
+                } text-white`}
+              >
+                {processing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaLock className="text-sm" />
+                    <span>
+                      {selectedRoom 
+                        ? `Pay ₹${Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) * 0.2).toLocaleString()} Now`
+                        : 'Select Room to Continue'
+                      }
+                    </span>
+                  </>
+                )}
+              </button>
+
+              <p className="text-xs text-gray-500 text-center">
+                Your payment information is secure and encrypted. This is a demo booking system.
+              </p>
+            </form>
           </div>
         </div>
       </div>

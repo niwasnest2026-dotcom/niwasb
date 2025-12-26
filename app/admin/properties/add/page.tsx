@@ -20,8 +20,6 @@ export default function AddProperty() {
   const [submitting, setSubmitting] = useState(false);
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [propertyImages, setPropertyImages] = useState<string[]>(['']);
-  const [newImageUrl, setNewImageUrl] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -33,7 +31,6 @@ export default function AddProperty() {
     security_deposit: '',
     available_months: '',
     property_type: 'PG',
-    gender_preference: 'Co-living',
     featured_image: '',
     rating: '',
     verified: false,
@@ -101,23 +98,6 @@ export default function AddProperty() {
     );
   };
 
-  const handleImageChange = (index: number, value: string) => {
-    const newImages = [...propertyImages];
-    newImages[index] = value;
-    setPropertyImages(newImages);
-  };
-
-  const addImageField = () => {
-    setPropertyImages([...propertyImages, '']);
-  };
-
-  const removeImageField = (index: number) => {
-    if (propertyImages.length > 1) {
-      const newImages = propertyImages.filter((_, i) => i !== index);
-      setPropertyImages(newImages);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -135,7 +115,6 @@ export default function AddProperty() {
           security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
           available_months: formData.available_months ? parseInt(formData.available_months) : null,
           property_type: formData.property_type,
-          gender_preference: formData.gender_preference,
           featured_image: formData.featured_image || null,
           rating: formData.rating ? parseFloat(formData.rating) : null,
           verified: formData.verified,
@@ -160,27 +139,11 @@ export default function AddProperty() {
         if (amenitiesError) throw amenitiesError;
       }
 
-      // Add property images
-      const validImages = propertyImages.filter(img => img.trim());
-      if (validImages.length > 0 && property) {
-        const imageInserts = validImages.map((imageUrl, index) => ({
-          property_id: (property as any).id,
-          image_url: imageUrl.trim(),
-          display_order: index,
-        }));
-
-        const { error: imagesError } = await supabase
-          .from('property_images')
-          .insert(imageInserts as any);
-
-        if (imagesError) throw imagesError;
-      }
-
       alert('Property added successfully!');
       router.push('/admin/properties');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding property:', error);
-      alert(`Failed to add property: ${error.message || 'Unknown error'}`);
+      alert('Failed to add property');
     } finally {
       setSubmitting(false);
     }
@@ -240,23 +203,6 @@ export default function AddProperty() {
                 <option value="Hostel">Hostel</option>
                 <option value="Flat">Flat</option>
                 <option value="Room">Room</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gender Preference *
-              </label>
-              <select
-                name="gender_preference"
-                value={formData.gender_preference}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="Co-living">Co-living</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
               </select>
             </div>
           </div>
@@ -404,46 +350,6 @@ export default function AddProperty() {
               placeholder="https://example.com/image.jpg"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Property Images
-              </label>
-              <button
-                type="button"
-                onClick={addImageField}
-                className="px-3 py-1 bg-primary text-white text-sm rounded-lg hover:bg-primary-dark transition-colors"
-              >
-                Add Image
-              </button>
-            </div>
-            <div className="space-y-3">
-              {propertyImages.map((imageUrl, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => handleImageChange(index, e.target.value)}
-                    placeholder={`Image ${index + 1} URL`}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  {propertyImages.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeImageField(index)}
-                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Add multiple images for your property. The first image will be used as the featured image.
-            </p>
           </div>
 
           <div>
