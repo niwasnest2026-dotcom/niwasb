@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   FaStar, FaMapMarkerAlt, FaArrowLeft, FaPhone, FaEnvelope, FaTimes,
   FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, FaCouch,
-  FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, FaClock
+  FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, FaClock, FaCalendarAlt, FaSearch
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import { supabase } from '@/lib/supabase';
@@ -36,6 +36,7 @@ const amenityIcons: Record<string, any> = {
 
 export default function PropertyDetails() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const propertyId = params.id as string;
   const [property, setProperty] = useState<PropertyWithDetails | null>(null);
@@ -46,6 +47,22 @@ export default function PropertyDetails() {
     contact_phone: '+91 63048 09598',
     contact_email: 'niwasnest2026@gmail.com'
   });
+
+  // Get search parameters
+  const duration = searchParams.get('duration') || '';
+  const checkIn = searchParams.get('checkIn') || '';
+  const checkOut = searchParams.get('checkOut') || '';
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -108,6 +125,172 @@ export default function PropertyDetails() {
     fetchData();
   }, [propertyId, router]);
 
+  const handleBookNow = (sharingType: string) => {
+    if (!property || !(property as any).rooms) return;
+    
+    const roomsOfType = (property as any).rooms.filter((room: any) => room.sharing_type === sharingType);
+    const availableRooms = roomsOfType.filter((room: any) => room.available_beds > 0);
+    
+    if (availableRooms.length === 0) {
+      alert('Sorry, no rooms available for this sharing type.');
+      return;
+    }
+
+    setSelectedRoom(availableRooms[0]); // Use first available room
+    setSelectedSharingType(sharingType);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPaymentFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!selectedRoom || !property) return;
+    
+    // Validate form
+    if (!paymentFormData.fullName || !paymentFormData.email || !paymentFormData.phone) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (!razorpayLoaded) {
+      alert('Payment system is loading. Please try again.');
+      return;
+    }
+
+    setPaymentProcessing(true);
+
+    try {
+      // Calculate amounts
+      const securityDeposit = selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2;
+      const totalAmount = selectedRoom.price_per_person + securityDeposit;
+      const amountToPay = Math.round(totalAmount * 0.2); // 20% upfront
+
+      // Create order
+      const orderResponse = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amountToPay,
+          receipt: `booking_${propertyId}_${Date.now()}`,
+          notes: {
+            property_id: propertyId,
+            property_name: property.name,
+            sharing_type: selectedSharingType,
+            guest_name: paymentFormData.fullName,
+            guest_email: paymentFormData.email,
+            guest_phone: paymentFormData.phone,
+          },
+        }),
+      });
+
+      const orderData = await orderResponse.json();
+
+      if (!orderData.success) {
+        throw new Error(orderData.error || 'Failed to create order');
+      }
+
+      // Initialize Razorpay
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: 'NiwasNest',
+        description: `Booking for ${property.name} - ${selectedSharingType}`,
+        order_id: orderData.order.id,
+        prefill: {
+          name: paymentFormData.fullName,
+          email: paymentFormData.email,
+          contact: paymentFormData.phone,
+        },
+        theme: {
+          color: '#3AAFA9',
+        },
+        method: {
+          netbanking: true,
+          card: true,
+          upi: true,
+          wallet: true,
+        },
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const verifyResponse = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                booking_details: {
+                  property_id: propertyId,
+                  room_id: selectedRoom.id,
+                  guest_name: paymentFormData.fullName,
+                  guest_email: paymentFormData.email,
+                  guest_phone: paymentFormData.phone,
+                  sharing_type: selectedSharingType,
+                  price_per_person: selectedRoom.price_per_person,
+                  security_deposit_per_person: securityDeposit,
+                  total_amount: totalAmount,
+                  amount_paid: amountToPay,
+                  amount_due: totalAmount - amountToPay,
+                  duration: duration,
+                  check_in: checkIn,
+                  check_out: checkOut,
+                },
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              // Success - show confirmation and close modal
+              alert(`🎉 Booking Confirmed!
+
+Payment ID: ${response.razorpay_payment_id}
+Amount Paid: ₹${amountToPay.toLocaleString()}
+Remaining: ₹${(totalAmount - amountToPay).toLocaleString()} (to be paid to owner)
+
+You will receive a confirmation email shortly.`);
+              
+              setShowPaymentModal(false);
+              setPaymentFormData({ fullName: '', email: '', phone: '' });
+            } else {
+              throw new Error('Payment verification failed');
+            }
+          } catch (error: any) {
+            alert('Payment verification failed: ' + (error.message || 'Unknown error'));
+          } finally {
+            setPaymentProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPaymentProcessing(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any) {
+        alert('Payment failed: ' + (response.error.description || 'Unknown error'));
+        setPaymentProcessing(false);
+      });
+
+      rzp.open();
+    } catch (error: any) {
+      alert('Failed to initiate payment: ' + (error.message || 'Unknown error'));
+      setPaymentProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -148,6 +331,36 @@ export default function PropertyDetails() {
           <FaArrowLeft className="mr-2" />
           Back to listings
         </Link>
+
+        {/* Search Criteria Display */}
+        {(duration || (checkIn && checkOut)) && (
+          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(222, 242, 241, 0.5)' }}>
+            <div className="flex items-center flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <FaSearch style={{ color: '#2B7A78' }} />
+                <span className="text-sm font-semibold" style={{ color: '#17252A' }}>Your Search:</span>
+              </div>
+              
+              {duration && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)' }}>
+                  <FaClock style={{ color: '#2B7A78' }} />
+                  <span className="text-sm font-medium" style={{ color: '#17252A' }}>
+                    {duration} month{parseInt(duration) > 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              
+              {checkIn && checkOut && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(43, 122, 120, 0.1)' }}>
+                  <FaCalendarAlt style={{ color: '#2B7A78' }} />
+                  <span className="text-sm font-medium" style={{ color: '#17252A' }}>
+                    {formatDate(checkIn)} - {formatDate(checkOut)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="relative h-96 bg-gray-200">
@@ -408,7 +621,7 @@ export default function PropertyDetails() {
 
                             {availableRooms.length > 0 ? (
                               <Link
-                                href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}`}
+                                href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
                                 className="block w-full px-4 py-2 text-white font-semibold rounded-lg transition-all"
                                 style={{ backgroundColor: '#3AAFA9' }}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}

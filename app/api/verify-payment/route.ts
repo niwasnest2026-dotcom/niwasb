@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      booking_id,
+      booking_details,
     } = await request.json();
 
     // Verify payment signature
@@ -30,27 +30,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update booking status in database
+    // Create booking in database
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { error } = await supabase
+    const { data: bookingData, error: bookingError } = await supabase
       .from('bookings')
-      .update({
-        payment_status: 'completed',
+      .insert({
+        property_id: booking_details.property_id,
+        room_id: booking_details.room_id,
+        guest_name: booking_details.guest_name,
+        guest_email: booking_details.guest_email,
+        guest_phone: booking_details.guest_phone,
+        sharing_type: booking_details.sharing_type,
+        price_per_person: booking_details.price_per_person,
+        security_deposit_per_person: booking_details.security_deposit_per_person,
+        total_amount: booking_details.total_amount,
+        amount_paid: booking_details.amount_paid,
+        amount_due: booking_details.amount_due,
+        payment_method: 'razorpay',
+        payment_status: 'partial', // 20% paid
+        booking_status: 'confirmed',
         payment_reference: razorpay_payment_id,
         payment_date: new Date().toISOString(),
+        duration_months: booking_details.duration ? parseInt(booking_details.duration) : null,
+        check_in_date: booking_details.check_in || null,
+        check_out_date: booking_details.check_out || null,
+        notes: `Booking made through Razorpay. Order ID: ${razorpay_order_id}. ${booking_details.duration ? `Duration: ${booking_details.duration} months.` : ''}`
       })
-      .eq('id', booking_id);
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Database update error:', error);
+    if (bookingError) {
+      console.error('Database insert error:', bookingError);
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to update booking status',
+          error: 'Failed to create booking record',
         },
         { status: 500 }
       );
@@ -58,7 +76,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Payment verified successfully',
+      message: 'Payment verified and booking created successfully',
+      booking_id: bookingData.id,
     });
   } catch (error: any) {
     console.error('Payment verification error:', error);

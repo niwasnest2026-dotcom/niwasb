@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   FaMapMarkerAlt, FaSearch, FaBuilding, FaLocationArrow, 
-  FaSpinner, FaHistory 
+  FaSpinner, FaHistory, FaCalendarAlt, FaClock 
 } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
 
@@ -23,6 +23,19 @@ const popularCities = [
   'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur'
 ];
 
+const durationOptions = [
+  { value: 1, label: '1 Month' },
+  { value: 2, label: '2 Months' },
+  { value: 3, label: '3 Months' },
+  { value: 4, label: '4 Months' },
+  { value: 5, label: '5 Months' },
+  { value: 6, label: '6 Months' },
+  { value: 7, label: '7 Months' },
+  { value: 8, label: '8 Months' },
+  { value: 9, label: '9 Months' },
+  { value: 12, label: '12 Months' },
+];
+
 export default function SearchForm() {
   const router = useRouter();
   const [city, setCity] = useState('');
@@ -33,8 +46,29 @@ export default function SearchForm() {
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   
+  // New state for duration and dates
+  const [duration, setDuration] = useState<number>(6); // Default 6 months
+  const [checkInDate, setCheckInDate] = useState('');
+  const [checkOutDate, setCheckOutDate] = useState('');
+  
   const cityInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Calculate check-out date when check-in date or duration changes
+  useEffect(() => {
+    if (checkInDate && duration) {
+      const checkIn = new Date(checkInDate);
+      const checkOut = new Date(checkIn);
+      checkOut.setMonth(checkOut.getMonth() + duration);
+      setCheckOutDate(checkOut.toISOString().split('T')[0]);
+    }
+  }, [checkInDate, duration]);
+
+  // Set default check-in date to today
+  useEffect(() => {
+    const today = new Date();
+    setCheckInDate(today.toISOString().split('T')[0]);
+  }, []);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -190,13 +224,27 @@ export default function SearchForm() {
 
     const params = new URLSearchParams();
     if (city) params.set('city', city);
+    if (duration) params.set('duration', duration.toString());
+    if (checkInDate) params.set('checkIn', checkInDate);
+    if (checkOutDate) params.set('checkOut', checkOutDate);
 
     router.push(`/listings?${params.toString()}`);
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
-    <div className="saas-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-3xl mx-auto border-gradient">
+    <div className="saas-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-4xl mx-auto border-gradient">
       <div className="space-y-4 sm:space-y-6">
+        {/* Location Search */}
         <div className="relative">
           <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
             Where do you want to stay?
@@ -364,6 +412,78 @@ export default function SearchForm() {
                     <div className="text-base sm:text-lg font-medium">Searching for properties in {city}...</div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Duration and Dates Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          {/* Duration Selection */}
+          <div className="relative">
+            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+              Duration
+            </label>
+            <div className="relative">
+              <FaClock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg appearance-none cursor-pointer"
+              >
+                {durationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Check-in Date */}
+          <div className="relative">
+            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+              Check-in Date
+            </label>
+            <div className="relative">
+              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <input
+                type="date"
+                value={checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
+              />
+            </div>
+            {checkInDate && (
+              <div className="mt-1 text-xs sm:text-sm text-secondary font-medium">
+                {formatDate(checkInDate)}
+              </div>
+            )}
+          </div>
+
+          {/* Check-out Date */}
+          <div className="relative">
+            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+              Check-out Date
+            </label>
+            <div className="relative">
+              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <input
+                type="date"
+                value={checkOutDate}
+                readOnly
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 outline-none text-neutral bg-neutral-100 rounded-lg sm:rounded-xl text-base sm:text-lg font-medium cursor-not-allowed"
+              />
+            </div>
+            {checkOutDate && (
+              <div className="mt-1 text-xs sm:text-sm text-secondary font-medium">
+                {formatDate(checkOutDate)}
               </div>
             )}
           </div>

@@ -81,7 +81,7 @@ export default function RazorpayPayment({
           contact: guestPhone,
         },
         theme: {
-          color: '#1e3a5f',
+          color: '#3AAFA9',
         },
         method: {
           netbanking: true,
