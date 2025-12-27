@@ -43,6 +43,7 @@ export default function PropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [settings, setSettings] = useState<SiteSettings>({
     contact_phone: '+91 63048 09598',
     contact_email: 'niwasnest2026@gmail.com'
@@ -124,172 +125,6 @@ export default function PropertyDetails() {
 
     fetchData();
   }, [propertyId, router]);
-
-  const handleBookNow = (sharingType: string) => {
-    if (!property || !(property as any).rooms) return;
-    
-    const roomsOfType = (property as any).rooms.filter((room: any) => room.sharing_type === sharingType);
-    const availableRooms = roomsOfType.filter((room: any) => room.available_beds > 0);
-    
-    if (availableRooms.length === 0) {
-      alert('Sorry, no rooms available for this sharing type.');
-      return;
-    }
-
-    setSelectedRoom(availableRooms[0]); // Use first available room
-    setSelectedSharingType(sharingType);
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPaymentFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleRazorpayPayment = async () => {
-    if (!selectedRoom || !property) return;
-    
-    // Validate form
-    if (!paymentFormData.fullName || !paymentFormData.email || !paymentFormData.phone) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    if (!razorpayLoaded) {
-      alert('Payment system is loading. Please try again.');
-      return;
-    }
-
-    setPaymentProcessing(true);
-
-    try {
-      // Calculate amounts
-      const securityDeposit = selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2;
-      const totalAmount = selectedRoom.price_per_person + securityDeposit;
-      const amountToPay = Math.round(totalAmount * 0.2); // 20% upfront
-
-      // Create order
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amountToPay,
-          receipt: `booking_${propertyId}_${Date.now()}`,
-          notes: {
-            property_id: propertyId,
-            property_name: property.name,
-            sharing_type: selectedSharingType,
-            guest_name: paymentFormData.fullName,
-            guest_email: paymentFormData.email,
-            guest_phone: paymentFormData.phone,
-          },
-        }),
-      });
-
-      const orderData = await orderResponse.json();
-
-      if (!orderData.success) {
-        throw new Error(orderData.error || 'Failed to create order');
-      }
-
-      // Initialize Razorpay
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: 'NiwasNest',
-        description: `Booking for ${property.name} - ${selectedSharingType}`,
-        order_id: orderData.order.id,
-        prefill: {
-          name: paymentFormData.fullName,
-          email: paymentFormData.email,
-          contact: paymentFormData.phone,
-        },
-        theme: {
-          color: '#3AAFA9',
-        },
-        method: {
-          netbanking: true,
-          card: true,
-          upi: true,
-          wallet: true,
-        },
-        handler: async function (response: any) {
-          try {
-            // Verify payment
-            const verifyResponse = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                booking_details: {
-                  property_id: propertyId,
-                  room_id: selectedRoom.id,
-                  guest_name: paymentFormData.fullName,
-                  guest_email: paymentFormData.email,
-                  guest_phone: paymentFormData.phone,
-                  sharing_type: selectedSharingType,
-                  price_per_person: selectedRoom.price_per_person,
-                  security_deposit_per_person: securityDeposit,
-                  total_amount: totalAmount,
-                  amount_paid: amountToPay,
-                  amount_due: totalAmount - amountToPay,
-                  duration: duration,
-                  check_in: checkIn,
-                  check_out: checkOut,
-                },
-              }),
-            });
-
-            const verifyData = await verifyResponse.json();
-
-            if (verifyData.success) {
-              // Success - show confirmation and close modal
-              alert(`🎉 Booking Confirmed!
-
-Payment ID: ${response.razorpay_payment_id}
-Amount Paid: ₹${amountToPay.toLocaleString()}
-Remaining: ₹${(totalAmount - amountToPay).toLocaleString()} (to be paid to owner)
-
-You will receive a confirmation email shortly.`);
-              
-              setShowPaymentModal(false);
-              setPaymentFormData({ fullName: '', email: '', phone: '' });
-            } else {
-              throw new Error('Payment verification failed');
-            }
-          } catch (error: any) {
-            alert('Payment verification failed: ' + (error.message || 'Unknown error'));
-          } finally {
-            setPaymentProcessing(false);
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setPaymentProcessing(false);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      
-      rzp.on('payment.failed', function (response: any) {
-        alert('Payment failed: ' + (response.error.description || 'Unknown error'));
-        setPaymentProcessing(false);
-      });
-
-      rzp.open();
-    } catch (error: any) {
-      alert('Failed to initiate payment: ' + (error.message || 'Unknown error'));
-      setPaymentProcessing(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -396,20 +231,22 @@ You will receive a confirmation email shortly.`);
                   INSTANT BOOK
                 </span>
               )}
-              {property.property_type && (
-                <span className="px-3 py-1.5 text-white text-sm font-bold rounded-full" style={{ background: 'linear-gradient(135deg, #3AAFA9, #2B7A78)' }}>
-                  {property.property_type}
-                </span>
-              )}
             </div>
           </div>
 
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
               <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                  {property.name}
-                </h1>
+                <div className="flex items-center gap-3 mb-3">
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                    {property.name}
+                  </h1>
+                  {property.property_type && (
+                    <span className="px-3 py-1.5 text-white text-sm font-bold rounded-lg" style={{ backgroundColor: '#2B7A78' }}>
+                      {property.property_type}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center text-gray-600 mb-4">
                   <FaMapMarkerAlt className="mr-2" style={{ color: '#2B7A78' }} />
                   <span className="text-lg">
@@ -445,20 +282,33 @@ You will receive a confirmation email shortly.`);
               </div>
 
               <div className="md:ml-8 mt-6 md:mt-0">
-                <button
-                  onClick={() => {
-                    const roomSection = document.getElementById('room-selection');
-                    if (roomSection) {
-                      roomSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
-                  style={{ backgroundColor: '#3AAFA9' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
-                >
-                  Choose Room Type
-                </button>
+                {property.property_type !== 'Room' && (property as any).rooms && (property as any).rooms.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const roomSection = document.getElementById('room-selection');
+                      if (roomSection) {
+                        roomSection.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl mb-4"
+                    style={{ backgroundColor: '#3AAFA9' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                  >
+                    Choose Room Type
+                  </button>
+                )}
+                {property.property_type === 'Room' && (
+                  <Link
+                    href={`/payment?propertyId=${property.id}&propertyType=Room${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
+                    className="block w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl mb-4 text-center"
+                    style={{ backgroundColor: '#3AAFA9' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                  >
+                    Book Now
+                  </Link>
+                )}
                 <div className="mt-4 flex flex-col space-y-2">
                   <a
                     href={`tel:${settings.contact_phone}`}
@@ -560,19 +410,38 @@ You will receive a confirmation email shortly.`);
 
             {property.amenities && property.amenities.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Amenities</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {property.amenities.map((amenity) => {
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Amenities</h2>
+                  {property.amenities.length > 8 && (
+                    <button
+                      onClick={() => setShowAllAmenities(!showAllAmenities)}
+                      className="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all hover:shadow-lg"
+                      style={{ borderColor: '#2B7A78', color: '#2B7A78' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#2B7A78';
+                        e.currentTarget.style.color = 'white';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#2B7A78';
+                      }}
+                    >
+                      {showAllAmenities ? 'Show Less' : `Show More (${property.amenities.length - 8})`}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {(showAllAmenities ? property.amenities : property.amenities.slice(0, 8)).map((amenity) => {
                     const IconComponent = amenityIcons[amenity.icon_name] || FaWifi;
                     return (
                       <div
                         key={amenity.id}
-                        className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200"
+                        className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200 min-w-0"
                       >
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
                           <IconComponent className="text-xl text-gray-700" />
                         </div>
-                        <span className="font-medium text-gray-900">{amenity.name}</span>
+                        <span className="font-medium text-gray-900 truncate min-w-0 flex-1">{amenity.name}</span>
                       </div>
                     );
                   })}
@@ -580,7 +449,7 @@ You will receive a confirmation email shortly.`);
               </div>
             )}
 
-            {(property as any).rooms && (property as any).rooms.length > 0 && (
+            {property.property_type !== 'Room' && (property as any).rooms && (property as any).rooms.length > 0 && (
               <div id="room-selection" className="mb-8">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Room Type</h2>
@@ -648,12 +517,71 @@ You will receive a confirmation email shortly.`);
             <div className="border-t pt-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Location</h2>
               <div className="bg-gray-100 rounded-xl p-6">
-                <p className="text-gray-800 font-medium">{property.address}</p>
-                <p className="text-gray-600 mt-2">
-                  {property.area && property.city
-                    ? `${property.area}, ${property.city}`
-                    : property.city || property.area}
-                </p>
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-gray-800 font-medium mb-2">{property.address}</p>
+                    <p className="text-gray-600">
+                      {property.area && property.city
+                        ? `${property.area}, ${property.city}`
+                        : property.city || property.area}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <a
+                      href={
+                        (property as any).google_maps_url || 
+                        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          `${property.address || ''} ${property.area || ''} ${property.city || ''}`.trim()
+                        )}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-4 py-2 text-white font-semibold rounded-lg transition-all hover:shadow-lg"
+                      style={{ backgroundColor: '#3AAFA9' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                    >
+                      <FaMapMarkerAlt className="mr-2" />
+                      View on Maps
+                    </a>
+                  </div>
+                </div>
+                
+                {/* Additional Location Info */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>
+                        {(property as any).google_maps_url ? 'Precise location on Google Maps' : 'Location search on Google Maps'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Real-time navigation available</span>
+                    </div>
+                  </div>
+                  
+                  {/* Show coordinates if available */}
+                  {(property as any).latitude && (property as any).longitude && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center space-x-2 text-xs text-gray-500">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        <span>
+                          Coordinates: {(property as any).latitude}, {(property as any).longitude}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

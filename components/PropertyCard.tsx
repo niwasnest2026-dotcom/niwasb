@@ -167,13 +167,13 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
         {/* Amenities List - Only 4 amenities with icons */}
         {property.amenities && property.amenities.length > 0 && (
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
             {property.amenities.slice(0, 4).map((amenity) => {
               const IconComponent = amenityIcons[amenity.icon_name] || FaWifi;
               return (
-                <div key={amenity.id} className="flex flex-col items-center flex-shrink-0 p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl backdrop-blur-sm hover:bg-primary/10 transition-all duration-300" title={amenity.name} style={{ backgroundColor: 'rgba(58, 175, 169, 0.08)', borderColor: 'rgba(58, 175, 169, 0.15)', border: '1px solid' }}>
-                  <IconComponent className="text-base sm:text-lg md:text-xl mb-1 sm:mb-1.5 md:mb-2" style={{ color: '#2B7A78' }} />
-                  <span className="text-[10px] sm:text-xs font-semibold text-center" style={{ color: 'rgba(23, 37, 42, 0.7)' }}>{amenity.name.split(' ')[0]}</span>
+                <div key={amenity.id} className="flex flex-col items-center p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl backdrop-blur-sm hover:bg-primary/10 transition-all duration-300 min-w-0" title={amenity.name} style={{ backgroundColor: 'rgba(58, 175, 169, 0.08)', borderColor: 'rgba(58, 175, 169, 0.15)', border: '1px solid' }}>
+                  <IconComponent className="text-base sm:text-lg md:text-xl mb-1 sm:mb-1.5 md:mb-2 flex-shrink-0" style={{ color: '#2B7A78' }} />
+                  <span className="text-[10px] sm:text-xs font-semibold text-center truncate w-full" style={{ color: 'rgba(23, 37, 42, 0.7)' }}>{amenity.name.split(' ')[0]}</span>
                 </div>
               );
             })}

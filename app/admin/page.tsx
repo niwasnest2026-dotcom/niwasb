@@ -77,123 +77,159 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="mb-6 sm:mb-8">
+          <Link href="/" className="hover:underline mb-2 inline-block" style={{ color: '#2B7A78' }}>
+            ← Back to Home
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage your properties and platform</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(58, 175, 169, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(58, 175, 169, 0.1)'
+          }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-medium">Total Properties</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalProperties}</p>
+                <p className="text-gray-600 text-sm font-medium">Total Properties</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.totalProperties}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🏠</span>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)' }}>
+                <span className="text-xl sm:text-2xl">🏠</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(43, 122, 120, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(43, 122, 120, 0.1)'
+          }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-medium">Total Users</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalUsers}</p>
+                <p className="text-gray-600 text-sm font-medium">Total Users</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.totalUsers}</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">👥</span>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(43, 122, 120, 0.1)' }}>
+                <span className="text-xl sm:text-2xl">👥</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(222, 242, 241, 0.3) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(222, 242, 241, 0.5)'
+          }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-medium">Amenities</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalAmenities}</p>
+                <p className="text-gray-600 text-sm font-medium">Amenities</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.totalAmenities}</p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">⭐</span>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(58, 175, 169, 0.15)' }}>
+                <span className="text-xl sm:text-2xl">⭐</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Link
             href="/admin/properties"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(58, 175, 169, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+              border: '1px solid rgba(58, 175, 169, 0.1)'
+            }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-rose-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-3xl">🏢</span>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: '#3AAFA9' }}>
+                <span className="text-2xl sm:text-3xl">🏢</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Manage Properties</h3>
-                <p className="text-gray-600">Add, edit, or remove properties</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Manage Properties</h3>
+                <p className="text-sm sm:text-base text-gray-600 break-words">Add, edit, or remove properties</p>
               </div>
             </div>
           </Link>
 
           <Link
             href="/admin/blog"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(43, 122, 120, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+              border: '1px solid rgba(43, 122, 120, 0.1)'
+            }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
-                <span className="text-3xl">📝</span>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: '#2B7A78' }}>
+                <span className="text-2xl sm:text-3xl">📝</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Manage Blog</h3>
-                <p className="text-gray-600">Create and manage blog posts</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Manage Blog</h3>
+                <p className="text-sm sm:text-base text-gray-600 break-words">Create and manage blog posts</p>
               </div>
             </div>
           </Link>
 
           <Link
             href="/admin/amenities"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(58, 175, 169, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+              border: '1px solid rgba(58, 175, 169, 0.1)'
+            }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <span className="text-3xl">✨</span>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: '#3AAFA9' }}>
+                <span className="text-2xl sm:text-3xl">✨</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Manage Amenities</h3>
-                <p className="text-gray-600">Add or remove amenities</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Manage Amenities</h3>
+                <p className="text-sm sm:text-base text-gray-600 break-words">Add or remove amenities</p>
               </div>
             </div>
           </Link>
 
           <Link
             href="/admin/bookings"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(43, 122, 120, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+              border: '1px solid rgba(43, 122, 120, 0.1)'
+            }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-3xl">📅</span>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: '#2B7A78' }}>
+                <span className="text-2xl sm:text-3xl">📅</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Manage Bookings</h3>
-                <p className="text-gray-600">View and manage room bookings</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Manage Bookings</h3>
+                <p className="text-sm sm:text-base text-gray-600 break-words">View and manage room bookings</p>
               </div>
             </div>
           </Link>
 
           <Link
             href="/admin/settings"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(222, 242, 241, 0.3) 0%, rgba(255, 255, 255, 0.95) 100%)',
+              border: '1px solid rgba(222, 242, 241, 0.5)'
+            }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
-                <span className="text-3xl">⚙️</span>
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: '#3AAFA9' }}>
+                <span className="text-2xl sm:text-3xl">⚙️</span>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Site Settings</h3>
-                <p className="text-gray-600">Manage contact info and settings</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Site Settings</h3>
+                <p className="text-sm sm:text-base text-gray-600 break-words">Manage contact info and settings</p>
               </div>
             </div>
           </Link>

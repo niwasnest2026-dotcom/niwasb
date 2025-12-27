@@ -33,6 +33,9 @@ export default function AddProperty() {
     property_type: 'PG',
     featured_image: '',
     rating: '',
+    google_maps_url: '',
+    latitude: '',
+    longitude: '',
     verified: false,
     instant_book: false,
     secure_booking: false,
@@ -117,6 +120,9 @@ export default function AddProperty() {
           property_type: formData.property_type,
           featured_image: formData.featured_image || null,
           rating: formData.rating ? parseFloat(formData.rating) : null,
+          google_maps_url: formData.google_maps_url || null,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           verified: formData.verified,
           instant_book: formData.instant_book,
           secure_booking: formData.secure_booking,
@@ -162,17 +168,21 @@ export default function AddProperty() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Link href="/admin/properties" className="text-primary hover:underline mb-2 inline-block">
+        <div className="mb-6 sm:mb-8">
+          <Link href="/admin/properties" className="hover:underline mb-2 inline-block" style={{ color: '#2B7A78' }}>
             ← Back to Properties
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Add New Property</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Add New Property</h1>
           <p className="text-gray-600 mt-2">Fill in the details to add a new property</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -261,6 +271,86 @@ export default function AddProperty() {
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
+          </div>
+
+          {/* Google Maps Location Section */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Google Maps Location (Optional)
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Add precise location information to help guests find the property easily. You can get these details from Google Maps.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Maps URL
+                </label>
+                <input
+                  type="url"
+                  name="google_maps_url"
+                  value={formData.google_maps_url}
+                  onChange={handleChange}
+                  placeholder="https://maps.google.com/maps?q=12.9716,77.5946 or https://goo.gl/maps/..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Copy the Google Maps URL for this property location
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    name="latitude"
+                    value={formData.latitude}
+                    onChange={handleChange}
+                    step="any"
+                    min="-90"
+                    max="90"
+                    placeholder="e.g., 12.9716"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    name="longitude"
+                    value={formData.longitude}
+                    onChange={handleChange}
+                    step="any"
+                    min="-180"
+                    max="180"
+                    placeholder="e.g., 77.5946"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">How to get location details:</h4>
+                <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                  <li>Go to <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Maps</a></li>
+                  <li>Search for your property address</li>
+                  <li>Right-click on the exact location pin</li>
+                  <li>Copy the coordinates (latitude, longitude) from the popup</li>
+                  <li>Copy the URL from the address bar for the Maps URL</li>
+                </ol>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -413,17 +503,18 @@ export default function AddProperty() {
             </label>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t">
             <Link
               href="/admin/properties"
-              className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 text-center"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-accent hover:bg-accent-dark text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+              className="px-6 py-2 text-white font-semibold rounded-lg transition-all hover:shadow-lg disabled:opacity-50"
+              style={{ backgroundColor: '#3AAFA9' }}
             >
               {submitting ? 'Adding...' : 'Add Property'}
             </button>

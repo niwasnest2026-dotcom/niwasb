@@ -134,20 +134,24 @@ export default function AddBlogPost() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <Link href="/admin/blog" className="text-primary hover:underline mb-2 inline-flex items-center gap-2">
+        <div className="mb-6 sm:mb-8">
+          <Link href="/admin/blog" className="hover:underline mb-2 inline-flex items-center gap-2" style={{ color: '#2B7A78' }}>
             <FaArrowLeft />
             Back to Blog Management
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Add New Blog Post</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Add New Blog Post</h1>
           <p className="text-gray-600 mt-2">Create a new article for your property blog</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
             {/* Title */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -160,7 +164,7 @@ export default function AddBlogPost() {
                 onChange={handleChange}
                 required
                 placeholder="Enter blog post title..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-lg"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-base sm:text-lg"
               />
             </div>
 
@@ -185,14 +189,18 @@ export default function AddBlogPost() {
 
             {/* Content */}
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Content *
                 </label>
                 <button
                   type="button"
                   onClick={() => setPreviewMode(!previewMode)}
-                  className="inline-flex items-center gap-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                  style={{ 
+                    backgroundColor: previewMode ? '#3AAFA9' : 'rgba(58, 175, 169, 0.1)', 
+                    color: previewMode ? 'white' : '#2B7A78' 
+                  }}
                 >
                   <FaEye />
                   {previewMode ? 'Edit' : 'Preview'}
@@ -200,9 +208,9 @@ export default function AddBlogPost() {
               </div>
               
               {previewMode ? (
-                <div className="w-full min-h-[400px] p-4 border border-gray-300 rounded-lg bg-gray-50">
+                <div className="w-full min-h-[300px] sm:min-h-[400px] p-4 border border-gray-300 rounded-lg bg-gray-50">
                   <div 
-                    className="prose max-w-none"
+                    className="prose max-w-none text-sm sm:text-base"
                     dangerouslySetInnerHTML={{ __html: formData.content.replace(/\n/g, '<br>') }}
                   />
                 </div>
@@ -212,7 +220,7 @@ export default function AddBlogPost() {
                   value={formData.content}
                   onChange={handleChange}
                   required
-                  rows={20}
+                  rows={15}
                   placeholder="Write your blog post content here... You can use HTML tags for formatting."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
                 />
@@ -224,10 +232,10 @@ export default function AddBlogPost() {
           </div>
 
           {/* Metadata */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Post Details</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Featured Image */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -301,7 +309,7 @@ export default function AddBlogPost() {
           </div>
 
           {/* Actions */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,17 +326,20 @@ export default function AddBlogPost() {
                 </select>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link
                   href="/admin/blog"
-                  className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-center"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                  style={{ backgroundColor: '#3AAFA9' }}
+                  onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#2B7A78')}
+                  onMouseLeave={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#3AAFA9')}
                 >
                   <FaSave />
                   {submitting 

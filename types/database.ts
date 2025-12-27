@@ -28,6 +28,9 @@ export interface Database {
           verified: boolean | null
           secure_booking: boolean | null
           featured_image: string | null
+          google_maps_url: string | null
+          latitude: number | null
+          longitude: number | null
           created_at: string | null
         }
         Insert: {
@@ -48,6 +51,9 @@ export interface Database {
           verified?: boolean | null
           secure_booking?: boolean | null
           featured_image?: string | null
+          google_maps_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           created_at?: string | null
         }
         Update: {
@@ -68,6 +74,9 @@ export interface Database {
           verified?: boolean | null
           secure_booking?: boolean | null
           featured_image?: string | null
+          google_maps_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           created_at?: string | null
         }
       }

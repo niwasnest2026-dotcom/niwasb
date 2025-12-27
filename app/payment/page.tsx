@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCreditCard, FaLock, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaLock, FaCheckCircle } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
 import RazorpayPayment from '@/components/RazorpayPayment';
 
@@ -24,12 +24,12 @@ export default function PaymentPage() {
   const propertyId = searchParams.get('propertyId');
   const roomId = searchParams.get('roomId');
   const sharingType = searchParams.get('sharingType');
+  const propertyType = searchParams.get('propertyType');
   
   const [property, setProperty] = useState<Property | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -100,8 +100,22 @@ export default function PaymentPage() {
             router.push(`/property/${propertyId}`);
             return;
           }
+        } else if (propertyType === 'Room') {
+          // For Room type properties, use property pricing directly
+          // Create a mock room object using property data
+          const mockRoom = {
+            id: `property_${propertyId}`,
+            property_id: propertyId,
+            room_number: 'Room',
+            sharing_type: 'Private Room',
+            price_per_person: (data as any).price,
+            security_deposit_per_person: (data as any).security_deposit || (data as any).price * 2,
+            available_beds: 1,
+            room_type: 'Room'
+          };
+          setSelectedRoom(mockRoom);
         } else {
-          // If no room or sharing type is selected, redirect to property page
+          // If no room, sharing type, or Room property type is selected, redirect to property page
           router.push(`/property/${propertyId}`);
           return;
         }
@@ -114,7 +128,7 @@ export default function PaymentPage() {
     }
 
     fetchProperty();
-  }, [propertyId, roomId, sharingType, router]);
+  }, [propertyId, roomId, sharingType, propertyType, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -148,30 +162,36 @@ export default function PaymentPage() {
       const amountDue = totalAmount - amountPaid; // 80% remaining
 
       // Create the booking record
-      const { data: bookingData, error: bookingError } = await supabase
+      const bookingData = {
+        property_id: property!.id,
+        guest_name: formData.fullName,
+        guest_email: formData.email,
+        guest_phone: formData.phone,
+        sharing_type: selectedRoom.sharing_type,
+        price_per_person: selectedRoom.price_per_person,
+        security_deposit_per_person: securityDeposit,
+        total_amount: totalAmount,
+        amount_paid: amountPaid,
+        amount_due: amountDue,
+        payment_method: 'razorpay',
+        payment_status: 'partial', // 20% paid
+        booking_status: 'confirmed',
+        payment_reference: paymentId,
+        payment_date: new Date().toISOString(),
+        duration_months: duration ? parseInt(duration) : null,
+        check_in_date: checkIn || null,
+        check_out_date: checkOut || null,
+        notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
+      };
+
+      // Only add room_id if it's not a mock room for Room type properties
+      if (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
+        (bookingData as any).room_id = selectedRoom.id;
+      }
+
+      const { data: bookingResult, error: bookingError } = await supabase
         .from('bookings')
-        .insert({
-          property_id: property!.id,
-          room_id: selectedRoom.id,
-          guest_name: formData.fullName,
-          guest_email: formData.email,
-          guest_phone: formData.phone,
-          sharing_type: selectedRoom.sharing_type,
-          price_per_person: selectedRoom.price_per_person,
-          security_deposit_per_person: securityDeposit,
-          total_amount: totalAmount,
-          amount_paid: amountPaid,
-          amount_due: amountDue,
-          payment_method: 'razorpay',
-          payment_status: 'partial', // 20% paid
-          booking_status: 'confirmed',
-          payment_reference: paymentId,
-          payment_date: new Date().toISOString(),
-          duration_months: duration ? parseInt(duration) : null,
-          check_in_date: checkIn || null,
-          check_out_date: checkOut || null,
-          notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : `Specific room: ${selectedRoom.room_number}`}`
-        } as any)
+        .insert(bookingData as any)
         .select()
         .single();
 
@@ -182,7 +202,7 @@ export default function PaymentPage() {
       // Show success message and redirect
       alert(`🎉 Booking Confirmed! 
       
-Booking ID: ${(bookingData as any)?.id || 'Generated'}
+Booking ID: ${(bookingResult as any)?.id || 'Generated'}
 Payment ID: ${paymentId}
 Amount Paid: ₹${amountPaid.toLocaleString()}
 Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
@@ -290,7 +310,16 @@ You will receive a confirmation email shortly.`);
                   </p>
                   {selectedRoom && (
                     <div className="mt-2">
-                      {sharingType ? (
+                      {propertyType === 'Room' ? (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Private Room
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Entire room booking
+                          </p>
+                        </div>
+                      ) : sharingType ? (
                         <div>
                           <p className="text-sm font-medium text-gray-700">
                             {selectedRoom.sharing_type}
@@ -319,11 +348,15 @@ You will receive a confirmation email shortly.`);
               {selectedRoom ? (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Monthly rent (per person)</span>
+                    <span className="text-gray-600">
+                      {propertyType === 'Room' ? 'Monthly rent' : 'Monthly rent (per person)'}
+                    </span>
                     <span className="font-semibold">₹{selectedRoom.price_per_person.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Security deposit (per person)</span>
+                    <span className="text-gray-600">
+                      {propertyType === 'Room' ? 'Security deposit' : 'Security deposit (per person)'}
+                    </span>
                     <span className="font-semibold">
                       ₹{(selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2).toLocaleString()}
                     </span>
@@ -444,29 +477,20 @@ You will receive a confirmation email shortly.`);
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={processing || !selectedRoom}
+                  disabled={!selectedRoom}
                   className={`w-full font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center space-x-2 ${
-                    processing || !selectedRoom
+                    !selectedRoom
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-primary to-secondary hover:shadow-lg'
                   } text-white`}
                 >
-                  {processing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaLock className="text-sm" />
-                      <span>
-                        {selectedRoom 
-                          ? `Proceed to Pay ₹${Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) * 0.2).toLocaleString()}`
-                          : 'Select Room to Continue'
-                        }
-                      </span>
-                    </>
-                  )}
+                  <FaLock className="text-sm" />
+                  <span>
+                    {selectedRoom 
+                      ? `Proceed to Pay ₹${Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) * 0.2).toLocaleString()}`
+                      : 'Select Room to Continue'
+                    }
+                  </span>
                 </button>
 
                 <p className="text-xs text-gray-500 text-center">

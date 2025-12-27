@@ -303,17 +303,21 @@ export default function EditProperty() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <Link href="/admin/properties" className="text-primary hover:underline mb-2 inline-block">
-            ← Back to Properties
+        <div className="mb-6 sm:mb-8">
+          <Link href="/admin/properties" className="hover:underline mb-2 inline-block" style={{ color: '#2B7A78' }}>
+            ←
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Property</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edit Property</h1>
           <p className="text-gray-600 mt-2">Update property details</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-4 sm:p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -496,7 +500,7 @@ export default function EditProperty() {
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Images</h3>
 
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 flex flex-col sm:flex-row gap-2">
               <input
                 type="url"
                 value={newImageUrl}
@@ -507,20 +511,23 @@ export default function EditProperty() {
               <button
                 type="button"
                 onClick={handleAddImage}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-white font-semibold rounded-lg transition-all hover:shadow-lg flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#3AAFA9' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
               >
                 <FaPlus /> Add Image
               </button>
             </div>
 
             {propertyImages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {propertyImages.map((image, index) => (
                   <div
                     key={image.id}
-                    className="relative bg-gray-50 border border-gray-200 rounded-lg p-3"
+                    className="relative bg-gray-50 border border-gray-200 rounded-xl p-3"
                   >
-                    <div className="relative h-40 mb-2 rounded overflow-hidden">
+                    <div className="relative h-32 sm:h-40 mb-2 rounded overflow-hidden">
                       <Image
                         src={image.image_url}
                         alt={`Property image ${index + 1}`}
@@ -534,7 +541,11 @@ export default function EditProperty() {
                           type="button"
                           onClick={() => handleMoveImage(image.id, 'up')}
                           disabled={index === 0}
-                          className="p-2 text-gray-600 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          style={{ 
+                            color: index === 0 ? '#9CA3AF' : '#2B7A78',
+                            backgroundColor: index === 0 ? 'transparent' : 'rgba(43, 122, 120, 0.1)'
+                          }}
                           title="Move up"
                         >
                           <FaArrowUp />
@@ -543,17 +554,21 @@ export default function EditProperty() {
                           type="button"
                           onClick={() => handleMoveImage(image.id, 'down')}
                           disabled={index === propertyImages.length - 1}
-                          className="p-2 text-gray-600 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          style={{ 
+                            color: index === propertyImages.length - 1 ? '#9CA3AF' : '#2B7A78',
+                            backgroundColor: index === propertyImages.length - 1 ? 'transparent' : 'rgba(43, 122, 120, 0.1)'
+                          }}
                           title="Move down"
                         >
                           <FaArrowDown />
                         </button>
                       </div>
-                      <span className="text-sm text-gray-500">Order: {index + 1}</span>
+                      <span className="text-sm text-gray-500 font-medium">Order: {index + 1}</span>
                       <button
                         type="button"
                         onClick={() => handleDeleteImage(image.id)}
-                        className="p-2 text-red-600 hover:text-red-700"
+                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete image"
                       >
                         <FaTrash />
@@ -563,7 +578,11 @@ export default function EditProperty() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">No images added yet</p>
+              <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                <div className="text-4xl mb-2">📷</div>
+                <p className="text-gray-500">No images added yet</p>
+                <p className="text-sm text-gray-400 mt-1">Add images to showcase your property</p>
+              </div>
             )}
           </div>
 
@@ -571,7 +590,7 @@ export default function EditProperty() {
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Amenities
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {amenities.map((amenity) => (
                 <label
                   key={amenity.id}
@@ -580,12 +599,20 @@ export default function EditProperty() {
                       ? 'border-primary bg-primary/5'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
+                  style={{
+                    borderColor: selectedAmenities.includes(amenity.id) ? '#3AAFA9' : undefined,
+                    backgroundColor: selectedAmenities.includes(amenity.id) ? 'rgba(58, 175, 169, 0.05)' : undefined
+                  }}
                 >
                   <input
                     type="checkbox"
                     checked={selectedAmenities.includes(amenity.id)}
                     onChange={() => handleAmenityToggle(amenity.id)}
-                    className="rounded text-primary focus:ring-primary"
+                    className="rounded focus:ring-2"
+                    style={{ 
+                      accentColor: '#3AAFA9',
+                      '--tw-ring-color': '#3AAFA9'
+                    } as any}
                   />
                   <span className="text-sm font-medium text-gray-700">{amenity.name}</span>
                 </label>
@@ -600,7 +627,11 @@ export default function EditProperty() {
                 name="verified"
                 checked={formData.verified}
                 onChange={handleChange}
-                className="rounded text-primary focus:ring-primary"
+                className="rounded focus:ring-2"
+                style={{ 
+                  accentColor: '#3AAFA9',
+                  '--tw-ring-color': '#3AAFA9'
+                } as any}
               />
               <span className="text-sm font-medium text-gray-700">Verified Property</span>
             </label>
@@ -611,7 +642,11 @@ export default function EditProperty() {
                 name="instant_book"
                 checked={formData.instant_book}
                 onChange={handleChange}
-                className="rounded text-primary focus:ring-primary"
+                className="rounded focus:ring-2"
+                style={{ 
+                  accentColor: '#3AAFA9',
+                  '--tw-ring-color': '#3AAFA9'
+                } as any}
               />
               <span className="text-sm font-medium text-gray-700">Instant Book Available</span>
             </label>
@@ -622,23 +657,30 @@ export default function EditProperty() {
                 name="secure_booking"
                 checked={formData.secure_booking}
                 onChange={handleChange}
-                className="rounded text-primary focus:ring-primary"
+                className="rounded focus:ring-2"
+                style={{ 
+                  accentColor: '#3AAFA9',
+                  '--tw-ring-color': '#3AAFA9'
+                } as any}
               />
               <span className="text-sm font-medium text-gray-700">Secure Booking</span>
             </label>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t">
             <Link
               href="/admin/properties"
-              className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="px-4 sm:px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 text-center"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-accent hover:bg-accent-dark text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+              className="px-4 sm:px-6 py-2 text-white font-semibold rounded-lg transition-all disabled:opacity-50 hover:shadow-lg"
+              style={{ backgroundColor: '#3AAFA9' }}
+              onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#2B7A78')}
+              onMouseLeave={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#3AAFA9')}
             >
               {submitting ? 'Updating...' : 'Update Property'}
             </button>

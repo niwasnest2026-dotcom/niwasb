@@ -135,20 +135,27 @@ export default function AdminAmenities() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 gap-4">
           <div>
-            <Link href="/admin" className="text-primary hover:underline mb-2 inline-block">
+            <Link href="/admin" className="hover:underline mb-2 inline-block" style={{ color: '#2B7A78' }}>
               ← Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">Manage Amenities</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manage Amenities</h1>
             <p className="text-gray-600 mt-2">Add or remove amenities for properties</p>
           </div>
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+              className="px-4 sm:px-6 py-3 text-white font-semibold rounded-lg transition-all hover:shadow-lg"
+              style={{ backgroundColor: '#3AAFA9' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
             >
               + Add Amenity
             </button>
@@ -156,7 +163,7 @@ export default function AdminAmenities() {
         </div>
 
         {showAddForm && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Amenity</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -188,21 +195,24 @@ export default function AdminAmenities() {
                   Use: wifi, power, gym, gaming, ac, lounge
                 </p>
               </div>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddForm(false);
                     setFormData({ name: '', icon_name: '' });
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                  className="px-6 py-2 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                  style={{ backgroundColor: '#3AAFA9' }}
+                  onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#2B7A78')}
+                  onMouseLeave={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#3AAFA9')}
                 >
                   {submitting ? 'Adding...' : 'Add Amenity'}
                 </button>
@@ -211,52 +221,82 @@ export default function AdminAmenities() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {amenities.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="text-5xl mb-4">✨</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">No amenities yet</h3>
+            <div className="p-8 sm:p-12 text-center">
+              <div className="text-4xl sm:text-5xl mb-4">✨</div>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">No amenities yet</h3>
               <p className="text-gray-600">Add your first amenity to get started</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Icon Name
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden sm:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Icon Name
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {amenities.map((amenity) => (
+                      <tr key={amenity.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{amenity.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)', color: '#2B7A78' }}>
+                            {amenity.icon_name}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleDelete(amenity.id)}
+                            disabled={deleteLoading === amenity.id}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            {deleteLoading === amenity.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-4 p-4">
                 {amenities.map((amenity) => (
-                  <tr key={amenity.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{amenity.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-mono bg-gray-100 text-gray-700 rounded">
-                        {amenity.icon_name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div key={amenity.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">{amenity.name}</h3>
+                        <div className="mt-2">
+                          <span className="px-2 py-1 text-xs font-mono rounded" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)', color: '#2B7A78' }}>
+                            {amenity.icon_name}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         onClick={() => handleDelete(amenity.id)}
                         disabled={deleteLoading === amenity.id}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        className="ml-4 px-3 py-1.5 text-sm font-medium text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-all"
                       >
                         {deleteLoading === amenity.id ? 'Deleting...' : 'Delete'}
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       </div>

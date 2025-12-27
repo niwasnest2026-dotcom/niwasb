@@ -181,18 +181,28 @@ export default function AdminBlog() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Blog Management</h1>
+              <Link href="/admin" className="hover:underline mb-2 inline-block" style={{ color: '#2B7A78' }}>
+                ← Back to Dashboard
+              </Link>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Blog Management</h1>
               <p className="text-gray-600 mt-2">Manage your property blog posts and articles</p>
             </div>
             <Link
               href="/admin/blog/add"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-4 sm:px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: '#3AAFA9' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
             >
               <FaPlus />
               Add New Post
@@ -201,8 +211,8 @@ export default function AdminBlog() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -211,7 +221,7 @@ export default function AdminBlog() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search posts..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent focus:ring-primary"
               />
             </div>
 
@@ -219,7 +229,7 @@ export default function AdminBlog() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent focus:ring-primary"
             >
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
@@ -230,7 +240,7 @@ export default function AdminBlog() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent focus:ring-primary"
             >
               {statuses.map(status => (
                 <option key={status} value={status}>
@@ -240,7 +250,7 @@ export default function AdminBlog() {
             </select>
 
             {/* Results Count */}
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center justify-center sm:justify-start text-gray-600">
               <span className="text-sm font-medium">
                 {filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''} found
               </span>
@@ -249,122 +259,212 @@ export default function AdminBlog() {
         </div>
 
         {/* Posts List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {filteredPosts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Post
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Author & Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stats
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                            <Image
-                              src={post.featured_image}
-                              alt={post.title}
-                              fill
-                              className="object-cover"
-                            />
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Post
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Author & Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Category
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Stats
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredPosts.map((post) => (
+                        <tr key={post.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center space-x-4">
+                              <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                                <Image
+                                  src={post.featured_image}
+                                  alt={post.title}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+                                  {post.title}
+                                </h3>
+                                <p className="text-sm text-gray-500 line-clamp-1 mt-1">
+                                  {post.excerpt}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 flex items-center gap-1">
+                              <FaUser className="text-gray-400" />
+                              {post.author}
+                            </div>
+                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                              <FaCalendarAlt className="text-gray-400" />
+                              {formatDate(post.published_date)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: '#3AAFA9' }}>
+                              {post.category}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              post.status === 'published' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {post.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <FaEye className="text-gray-400" />
+                                {post.views}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <FaHeart className="text-gray-400" />
+                                {post.likes}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <Link
+                                href={`/blog/${post.id}`}
+                                target="_blank"
+                                className="p-2 rounded-lg transition-colors hover:shadow-lg"
+                                style={{ color: '#3AAFA9', backgroundColor: 'rgba(58, 175, 169, 0.1)' }}
+                                title="View Post"
+                              >
+                                <FaEye />
+                              </Link>
+                              <Link
+                                href={`/admin/blog/edit/${post.id}`}
+                                className="p-2 rounded-lg transition-colors hover:shadow-lg"
+                                style={{ color: '#2B7A78', backgroundColor: 'rgba(43, 122, 120, 0.1)' }}
+                                title="Edit Post"
+                              >
+                                <FaEdit />
+                              </Link>
+                              <button
+                                onClick={() => handleDelete(post.id)}
+                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete Post"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4 p-4">
+                {filteredPosts.map((post) => (
+                  <div key={post.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-start space-x-4">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                        <Image
+                          src={post.featured_image}
+                          alt={post.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2">{post.title}</h3>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">{post.excerpt}</p>
+                        
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full text-white" style={{ backgroundColor: '#3AAFA9' }}>
+                            {post.category}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            post.status === 'published' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {post.status}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                          <div>
+                            <div className="flex items-center gap-1 text-gray-600 mb-1">
+                              <FaUser className="text-gray-400" />
+                              <span className="truncate">{post.author}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-gray-500">
+                              <FaCalendarAlt className="text-gray-400" />
+                              <span>{formatDate(post.published_date)}</span>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
-                              {post.title}
-                            </h3>
-                            <p className="text-sm text-gray-500 line-clamp-1 mt-1">
-                              {post.excerpt}
-                            </p>
+                          <div>
+                            <div className="flex items-center gap-1 text-gray-600 mb-1">
+                              <FaEye className="text-gray-400" />
+                              <span>{post.views} views</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-gray-500">
+                              <FaHeart className="text-gray-400" />
+                              <span>{post.likes} likes</span>
+                            </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 flex items-center gap-1">
-                          <FaUser className="text-gray-400" />
-                          {post.author}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                          <FaCalendarAlt className="text-gray-400" />
-                          {formatDate(post.published_date)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-secondary">
-                          {post.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          post.status === 'published' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {post.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <FaEye className="text-gray-400" />
-                            {post.views}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <FaHeart className="text-gray-400" />
-                            {post.likes}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                        
+                        <div className="flex flex-wrap gap-2">
                           <Link
                             href={`/blog/${post.id}`}
                             target="_blank"
-                            className="text-primary hover:text-primary-dark p-2 hover:bg-primary/10 rounded-lg transition-colors"
-                            title="View Post"
+                            className="px-3 py-1.5 text-sm font-medium text-white rounded-lg transition-all"
+                            style={{ backgroundColor: '#3AAFA9' }}
                           >
-                            <FaEye />
+                            View
                           </Link>
                           <Link
                             href={`/admin/blog/edit/${post.id}`}
-                            className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Post"
+                            className="px-3 py-1.5 text-sm font-medium rounded-lg border-2 transition-all"
+                            style={{ borderColor: '#2B7A78', color: '#2B7A78' }}
                           >
-                            <FaEdit />
+                            Edit
                           </Link>
                           <button
                             onClick={() => handleDelete(post.id)}
-                            className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete Post"
+                            className="px-3 py-1.5 text-sm font-medium text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-50 transition-all"
                           >
-                            <FaTrash />
+                            Delete
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📝</div>
@@ -378,7 +478,8 @@ export default function AdminBlog() {
               {(!searchQuery && selectedCategory === 'All' && selectedStatus === 'All') && (
                 <Link
                   href="/admin/blog/add"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg transition-all"
+                  style={{ backgroundColor: '#3AAFA9' }}
                 >
                   <FaPlus />
                   Create First Post
@@ -389,63 +490,75 @@ export default function AdminBlog() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mt-6 sm:mt-8">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(58, 175, 169, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(58, 175, 169, 0.1)'
+          }}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <FaEdit className="text-primary" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)' }}>
+                  <FaEdit style={{ color: '#3AAFA9' }} />
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Posts</p>
-                <p className="text-2xl font-semibold text-gray-900">{posts.length}</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">{posts.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(43, 122, 120, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(43, 122, 120, 0.1)'
+          }}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
                   <FaEye className="text-green-600" />
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Published</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {posts.filter(p => p.status === 'published').length}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(222, 242, 241, 0.3) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(222, 242, 241, 0.5)'
+          }}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
                   <FaClock className="text-yellow-600" />
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Drafts</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {posts.filter(p => p.status === 'draft').length}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6" style={{ 
+            background: 'linear-gradient(135deg, rgba(58, 175, 169, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%)',
+            border: '1px solid rgba(58, 175, 169, 0.1)'
+          }}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FaHeart className="text-blue-600" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                  <FaHeart className="text-red-500" />
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Likes</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {posts.reduce((sum, post) => sum + post.likes, 0)}
                 </p>
               </div>
