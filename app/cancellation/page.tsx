@@ -2,11 +2,15 @@ import Link from 'next/link';
 
 export default function CancellationPolicy() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen py-12 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="mb-8">
-            <Link href="/" className="text-primary hover:underline mb-4 inline-block">
+            <Link href="/" className="hover:underline mb-4 inline-block" style={{ color: '#2B7A78' }}>
               ← Back to Home
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Cancellation and Refunds Policy</h1>
@@ -91,7 +95,7 @@ export default function CancellationPolicy() {
                 </ol>
 
                 <h3 className="text-lg font-semibold text-gray-900 mt-6">Contact Support:</h3>
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)', borderColor: 'rgba(58, 175, 169, 0.3)', border: '1px solid' }}>
                   <p><strong>Phone:</strong> +91 63048 09598</p>
                   <p><strong>Email:</strong> niwasnest2026@gmail.com</p>
                   <p><strong>WhatsApp:</strong> +91 63048 09598</p>

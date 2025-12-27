@@ -2,11 +2,15 @@ import Link from 'next/link';
 
 export default function TermsAndConditions() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen py-12 px-4" style={{ 
+      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="mb-8">
-            <Link href="/" className="text-primary hover:underline mb-4 inline-block">
+            <Link href="/" className="hover:underline mb-4 inline-block" style={{ color: '#2B7A78' }}>
               ← Back to Home
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Terms and Conditions</h1>
@@ -67,7 +71,7 @@ export default function TermsAndConditions() {
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">5. Cancellation Policy</h2>
               <p className="text-gray-700 mb-4">
                 Cancellation policies vary by property. Please refer to the specific property's cancellation policy before booking. 
-                For detailed information, please see our <Link href="/cancellation" className="text-primary hover:underline">Cancellation and Refunds Policy</Link>.
+                For detailed information, please see our <Link href="/cancellation" className="hover:underline" style={{ color: '#3AAFA9' }}>Cancellation and Refunds Policy</Link>.
               </p>
             </section>
 
@@ -82,7 +86,7 @@ export default function TermsAndConditions() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Privacy</h2>
               <p className="text-gray-700 mb-4">
-                Your privacy is important to us. Please review our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link> 
+                Your privacy is important to us. Please review our <Link href="/privacy" className="hover:underline" style={{ color: '#3AAFA9' }}>Privacy Policy</Link> 
                 to understand how we collect, use, and protect your information.
               </p>
             </section>
