@@ -4,9 +4,10 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  FaStar, FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, 
-  FaCouch, FaChevronLeft, FaChevronRight, FaBath, FaUtensils, 
-  FaBroom, FaTshirt, FaParking, FaShieldAlt, FaMapMarkerAlt
+  FaStar, FaChevronLeft, FaChevronRight, FaMapMarkerAlt,
+  FaSnowflake, FaCouch, FaDumbbell, FaParking, FaUtensils, 
+  FaTshirt, FaFingerprint, FaVideo, FaTint, FaPlus,
+  FaWifi, FaBolt, FaShieldAlt, FaBroom, FaGamepad
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import type { PropertyWithDetails } from '@/types/database';
@@ -15,21 +16,6 @@ interface PropertyCardProps {
   property: PropertyWithDetails;
 }
 
-const amenityIcons: Record<string, any> = {
-  wifi: FaWifi,
-  power: FaBolt,
-  gym: FaDumbbell,
-  gaming: FaGamepad,
-  ac: FaSnowflake,
-  lounge: FaCouch,
-  FaSnowflake: FaSnowflake,
-  FaBath: FaBath,
-  FaUtensils: FaUtensils,
-  FaBroom: FaBroom,
-  FaTshirt: FaTshirt,
-  FaParking: FaParking,
-  FaShieldAlt: FaShieldAlt,
-};
 
 export default function PropertyCard({ property }: PropertyCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -55,7 +41,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
   return (
     <div 
-      className="group relative rounded-xl sm:rounded-2xl overflow-hidden saas-card border-gradient shadow-lg hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-500"
+      className="group relative rounded-xl sm:rounded-2xl overflow-hidden modern-card shadow-lg hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-500"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -90,7 +76,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             </div>
 
             {/* Carousel Indicators */}
-            <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-1.5 sm:space-x-2 p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-neutral/20 backdrop-blur-md">
+            <div className="absolute bottom-12 sm:bottom-14 left-1/2 -translate-x-1/2 flex space-x-1.5 sm:space-x-2 p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-neutral/20 backdrop-blur-md">
               {images.map((_, index) => (
                 <div
                   key={index}
@@ -105,24 +91,43 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </>
         )}
 
+        {/* Top Left - Gender Preference */}
+        {(property as any).gender_preference && (
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+            <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ 
+              backgroundColor: (property as any).gender_preference === 'Male' 
+                ? 'rgba(255, 103, 17, 0.8)' 
+                : (property as any).gender_preference === 'Female'
+                ? 'rgba(255, 208, 130, 0.8)'
+                : 'rgba(99, 179, 237, 0.8)' // Co-living
+            }}>
+              {(property as any).gender_preference === 'Male' 
+                ? 'MALE PG' 
+                : (property as any).gender_preference === 'Female'
+                ? 'FEMALE PG'
+                : 'CO-LIVING'}
+            </div>
+          </div>
+        )}
+
         {/* Top Right - Rating */}
         {property.rating && property.rating > 0 && (
-          <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-neutral/80 backdrop-blur-md text-neutral-white shadow-lg">
-            <FaStar className="text-primary text-sm sm:text-lg" />
-            <span className="font-bold text-sm sm:text-lg">{property.rating}</span>
+          <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md backdrop-blur-sm text-white shadow-sm" style={{ backgroundColor: 'rgba(45, 55, 72, 0.8)' }}>
+            <FaStar className="text-xs sm:text-sm" style={{ color: '#FFD082' }} />
+            <span className="font-semibold text-xs sm:text-sm">{property.rating}</span>
           </div>
         )}
 
         {/* Bottom Left - Zero Brokerage */}
-        <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4">
-          <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg backdrop-blur-md text-white text-xs sm:text-sm font-bold shadow-lg" style={{ backgroundColor: 'rgba(58, 175, 169, 0.9)' }}>
+        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+          <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ backgroundColor: 'rgba(99, 179, 237, 0.8)' }}>
             Zero Brokerage
           </div>
         </div>
 
         {/* Bottom Right - Refundable Deposit */}
-        <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4">
-          <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg backdrop-blur-md text-white text-xs sm:text-sm font-bold shadow-lg" style={{ backgroundColor: 'rgba(43, 122, 120, 0.9)' }}>
+        <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3">
+          <div className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ backgroundColor: 'rgba(255, 208, 130, 0.8)' }}>
             Refundable Deposit
           </div>
         </div>
@@ -134,49 +139,84 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Verified/Secure Badges */}
         <div className="flex items-center flex-wrap gap-2 sm:gap-3 mb-2 sm:mb-3">
           {property.verified && (
-            <div className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-white text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'rgba(58, 175, 169, 0.15)', borderColor: 'rgba(58, 175, 169, 0.3)', border: '1px solid' }}>
-              <MdVerified className="text-sm sm:text-lg" style={{ color: '#3AAFA9' }} />
-              <span style={{ color: '#2B7A78' }}>Verified</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'rgba(99, 179, 237, 0.15)', borderColor: 'rgba(99, 179, 237, 0.3)', border: '1px solid', color: '#2D3748' }}>
+              <MdVerified className="text-sm sm:text-lg" style={{ color: '#63B3ED' }} />
+              <span>Verified</span>
             </div>
           )}
           {property.secure_booking && (
-            <div className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-white text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'rgba(43, 122, 120, 0.15)', borderColor: 'rgba(43, 122, 120, 0.3)', border: '1px solid' }}>
-              <MdSecurity className="text-sm sm:text-lg" style={{ color: '#2B7A78' }} />
-              <span style={{ color: '#3AAFA9' }}>Secure</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'rgba(255, 208, 130, 0.15)', borderColor: 'rgba(255, 208, 130, 0.3)', border: '1px solid', color: '#2D3748' }}>
+              <MdSecurity className="text-sm sm:text-lg" style={{ color: '#FFD082' }} />
+              <span>Secure</span>
             </div>
           )}
         </div>
         
         {/* Property Name with Type */}
         <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-          <h3 className="font-merriweather text-lg sm:text-xl md:text-2xl font-bold text-neutral line-clamp-1">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold line-clamp-1" style={{ color: '#2D3748' }}>
             {property.name}
           </h3>
           {property.property_type && (
-            <span className="px-2 py-1 text-white text-xs font-semibold rounded-lg flex-shrink-0" style={{ backgroundColor: 'rgba(43, 122, 120, 0.9)' }}>
+            <span className="px-2 py-1 text-white text-xs font-semibold rounded-lg flex-shrink-0" style={{ backgroundColor: '#FF6711' }}>
               {property.property_type}
             </span>
           )}
         </div>
 
         {/* Address - Single Line */}
-        <div className="text-neutral/70 text-sm sm:text-base mb-2 sm:mb-3 line-clamp-1 flex items-center">
-          <FaMapMarkerAlt className="mr-1.5 text-secondary flex-shrink-0" />
+        <div className="text-sm sm:text-base mb-2 sm:mb-3 line-clamp-1 flex items-center" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
+          <FaMapMarkerAlt className="mr-1.5 flex-shrink-0" style={{ color: '#63B3ED' }} />
           {property.area && property.city ? `${property.area}, ${property.city}` : property.city || property.area || property.address}
         </div>
 
-        {/* Amenities List - Only 4 amenities with icons */}
+        {/* Amenities List - Compact design like reference */}
         {property.amenities && property.amenities.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-            {property.amenities.slice(0, 4).map((amenity) => {
-              const IconComponent = amenityIcons[amenity.icon_name] || FaWifi;
-              return (
-                <div key={amenity.id} className="flex flex-col items-center p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl backdrop-blur-sm hover:bg-primary/10 transition-all duration-300 min-w-0" title={amenity.name} style={{ backgroundColor: 'rgba(58, 175, 169, 0.08)', borderColor: 'rgba(58, 175, 169, 0.15)', border: '1px solid' }}>
-                  <IconComponent className="text-base sm:text-lg md:text-xl mb-1 sm:mb-1.5 md:mb-2 flex-shrink-0" style={{ color: '#2B7A78' }} />
-                  <span className="text-[10px] sm:text-xs font-semibold text-center truncate w-full" style={{ color: 'rgba(23, 37, 42, 0.7)' }}>{amenity.name.split(' ')[0]}</span>
+          <div className="mb-4 sm:mb-6">
+            <h4 className="text-xs sm:text-sm font-bold text-gray-600 uppercase tracking-wide mb-2 sm:mb-3">Free Amenities</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex space-x-3 sm:space-x-4">
+                {property.amenities.slice(0, 3).map((amenity) => {
+                  // Professional icon mapping with Font Awesome icons
+                  const getAmenityIcon = (name: string) => {
+                    const lowerName = name.toLowerCase();
+                    if (lowerName.includes('wifi') || lowerName.includes('internet')) return <FaWifi className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('ac') || lowerName.includes('air')) return <FaSnowflake className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('gym') || lowerName.includes('fitness')) return <FaDumbbell className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('parking')) return <FaParking className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('security') || lowerName.includes('cctv')) return <FaVideo className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('water')) return <FaTint className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('power') || lowerName.includes('backup')) return <FaBolt className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('laundry') || lowerName.includes('washing')) return <FaTshirt className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('kitchen') || lowerName.includes('food') || lowerName.includes('dining')) return <FaUtensils className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('cleaning') || lowerName.includes('housekeeping')) return <FaBroom className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('lounge') || lowerName.includes('common')) return <FaCouch className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('gaming') || lowerName.includes('game')) return <FaGamepad className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    if (lowerName.includes('biometric') || lowerName.includes('fingerprint')) return <FaFingerprint className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />;
+                    return <FaShieldAlt className="text-lg sm:text-xl" style={{ color: '#FF6711' }} />; // Default icon
+                  };
+
+                  return (
+                    <div key={amenity.id} className="flex flex-col items-center min-w-0">
+                      <div className="mb-1 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
+                        {getAmenityIcon(amenity.name)}
+                      </div>
+                      <span className="text-[10px] sm:text-xs text-center truncate w-full max-w-[50px] sm:max-w-[60px]" style={{ color: '#2D3748' }}>
+                        {amenity.name.split(' ')[0]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {property.amenities.length > 3 && (
+                <div className="flex flex-col items-center">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-1">
+                    <FaPlus className="text-lg sm:text-xl" style={{ color: '#63B3ED' }} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs" style={{ color: '#2D3748' }}>+{property.amenities.length - 3} More</span>
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
         )}
 
@@ -184,24 +224,30 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
           {(property as any).rooms && (property as any).rooms.length > 0 ? (
             <>
-              {/* Get unique sharing types with their prices */}
+              {/* Get unique sharing types with their prices and availability */}
               {Array.from(new Set((property as any).rooms.map((room: any) => room.sharing_type)))
                 .slice(0, 4) // Show max 4 room types
                 .map((sharingType) => {
                   const sharingTypeStr = sharingType as string;
                   const roomsOfType = (property as any).rooms.filter((room: any) => room.sharing_type === sharingTypeStr);
                   const price = Math.min(...roomsOfType.map((room: any) => room.price_per_person));
+                  const totalAvailableBeds = roomsOfType.reduce((sum: number, room: any) => sum + (room.available_beds || 0), 0);
                   
                   return (
                     <div key={sharingTypeStr} className="flex justify-between items-center text-sm sm:text-base">
-                      <span className="text-neutral/70">{sharingTypeStr}</span>
-                      <span className="font-semibold text-neutral">₹{price.toLocaleString()}</span>
+                      <div className="flex flex-col">
+                        <span style={{ color: 'rgba(45, 55, 72, 0.7)' }}>{sharingTypeStr}</span>
+                        <span className="text-xs" style={{ color: totalAvailableBeds > 0 ? '#63B3ED' : '#EF4444' }}>
+                          {totalAvailableBeds > 0 ? `${totalAvailableBeds} bed${totalAvailableBeds > 1 ? 's' : ''} available` : 'No beds available'}
+                        </span>
+                      </div>
+                      <span className="font-semibold" style={{ color: '#2D3748' }}>₹{price.toLocaleString()}</span>
                     </div>
                   );
                 })}
               <div className="flex justify-between items-center text-sm sm:text-base">
-                <span className="text-neutral/70">Security Deposit</span>
-                <span className="font-semibold text-neutral">
+                <span style={{ color: 'rgba(45, 55, 72, 0.7)' }}>Security Deposit</span>
+                <span className="font-semibold" style={{ color: '#2D3748' }}>
                   ₹{Math.min(...(property as any).rooms.map((room: any) => room.security_deposit_per_person || room.price_per_person * 2)).toLocaleString()}
                 </span>
               </div>
@@ -209,12 +255,12 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           ) : (
             <>
               <div className="flex justify-between items-center text-sm sm:text-base">
-                <span className="text-neutral/70">Monthly Rent</span>
-                <span className="font-semibold text-neutral">₹{property.price.toLocaleString()}</span>
+                <span style={{ color: 'rgba(45, 55, 72, 0.7)' }}>Monthly Rent</span>
+                <span className="font-semibold" style={{ color: '#2D3748' }}>₹{property.price.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center text-sm sm:text-base">
-                <span className="text-neutral/70">Security Deposit</span>
-                <span className="font-semibold text-neutral">₹{((property as any).security_deposit || property.price * 2).toLocaleString()}</span>
+                <span style={{ color: 'rgba(45, 55, 72, 0.7)' }}>Security Deposit</span>
+                <span className="font-semibold" style={{ color: '#2D3748' }}>₹{((property as any).security_deposit || property.price * 2).toLocaleString()}</span>
               </div>
             </>
           )}
@@ -223,15 +269,15 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Action Button */}
         <Link
           href={property.id ? `/property/${property.id}` : '#'}
-          className="w-full flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all active:scale-[0.98] text-white"
-          style={{ backgroundColor: '#2B7A78' }}
+          className="w-full flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all active:scale-[0.98] text-white"
+          style={{ backgroundColor: '#FF6711' }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#17252A';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(43, 122, 120, 0.3)';
+            e.currentTarget.style.backgroundColor = '#E55A0F';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 103, 17, 0.3)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#2B7A78';
+            e.currentTarget.style.backgroundColor = '#FF6711';
             e.currentTarget.style.transform = 'translateY(0)';
             e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
           }}

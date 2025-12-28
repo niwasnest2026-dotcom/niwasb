@@ -31,6 +31,7 @@ export default function AddProperty() {
     security_deposit: '',
     available_months: '',
     property_type: 'PG',
+    gender_preference: 'Co-living',
     featured_image: '',
     rating: '',
     google_maps_url: '',
@@ -118,6 +119,7 @@ export default function AddProperty() {
           security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
           available_months: formData.available_months ? parseInt(formData.available_months) : null,
           property_type: formData.property_type,
+          gender_preference: formData.gender_preference,
           featured_image: formData.featured_image || null,
           rating: formData.rating ? parseFloat(formData.rating) : null,
           google_maps_url: formData.google_maps_url || null,
@@ -213,6 +215,23 @@ export default function AddProperty() {
                 <option value="Hostel">Hostel</option>
                 <option value="Flat">Flat</option>
                 <option value="Room">Room</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender Preference *
+              </label>
+              <select
+                name="gender_preference"
+                value={formData.gender_preference}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="Co-living">Co-living (Mixed)</option>
+                <option value="Male">Male Only</option>
+                <option value="Female">Female Only</option>
               </select>
             </div>
           </div>

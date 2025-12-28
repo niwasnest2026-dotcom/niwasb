@@ -7,7 +7,8 @@ import Link from 'next/link';
 import {
   FaStar, FaMapMarkerAlt, FaArrowLeft, FaPhone, FaEnvelope, FaTimes,
   FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, FaCouch,
-  FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, FaClock, FaCalendarAlt, FaSearch
+  FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, 
+  FaClock, FaCalendarAlt, FaSearch, FaVideo, FaTint, FaFingerprint
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import { supabase } from '@/lib/supabase';
@@ -153,42 +154,42 @@ export default function PropertyDetails() {
 
   return (
     <div className="min-h-screen py-8 px-4" style={{ 
-      background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)',
+      background: 'linear-gradient(135deg, #63B3ED 0%, #90CDF4 50%, #63B3ED 100%)',
       backgroundSize: '400% 400%',
       animation: 'gradientShift 20s ease infinite'
     }}>
       <div className="max-w-6xl mx-auto">
         <Link
           href="/"
-          className="inline-flex items-center hover:underline mb-6"
-          style={{ color: '#2B7A78' }}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/20 transition-colors mb-6"
+          style={{ color: '#2D3748' }}
+          title="Back to listings"
         >
-          <FaArrowLeft className="mr-2" />
-          Back to listings
+          <FaArrowLeft className="text-lg" />
         </Link>
 
         {/* Search Criteria Display */}
         {(duration || (checkIn && checkOut)) && (
-          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(222, 242, 241, 0.5)' }}>
+          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(247, 250, 252, 0.8)' }}>
             <div className="flex items-center flex-wrap gap-4">
               <div className="flex items-center space-x-2">
-                <FaSearch style={{ color: '#2B7A78' }} />
-                <span className="text-sm font-semibold" style={{ color: '#17252A' }}>Your Search:</span>
+                <FaSearch style={{ color: '#FF6711' }} />
+                <span className="text-sm font-semibold" style={{ color: '#2D3748' }}>Your Search:</span>
               </div>
               
               {duration && (
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)' }}>
-                  <FaClock style={{ color: '#2B7A78' }} />
-                  <span className="text-sm font-medium" style={{ color: '#17252A' }}>
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
+                  <FaClock style={{ color: '#FF6711' }} />
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
                     {duration} month{parseInt(duration) > 1 ? 's' : ''}
                   </span>
                 </div>
               )}
               
               {checkIn && checkOut && (
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(43, 122, 120, 0.1)' }}>
-                  <FaCalendarAlt style={{ color: '#2B7A78' }} />
-                  <span className="text-sm font-medium" style={{ color: '#17252A' }}>
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
+                  <FaCalendarAlt style={{ color: '#63B3ED' }} />
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
                     {formatDate(checkIn)} - {formatDate(checkOut)}
                   </span>
                 </div>
@@ -209,8 +210,49 @@ export default function PropertyDetails() {
               />
             )}
 
+            {/* Top Left - Gender Preference */}
+            {(property as any).gender_preference && (
+              <div className="absolute top-3 left-3">
+                <div className="px-2.5 py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ 
+                  backgroundColor: (property as any).gender_preference === 'Male' 
+                    ? 'rgba(255, 103, 17, 0.8)' 
+                    : (property as any).gender_preference === 'Female'
+                    ? 'rgba(255, 208, 130, 0.8)'
+                    : 'rgba(99, 179, 237, 0.8)' // Co-living
+                }}>
+                  {(property as any).gender_preference === 'Male' 
+                    ? 'MALE PG' 
+                    : (property as any).gender_preference === 'Female'
+                    ? 'FEMALE PG'
+                    : 'CO-LIVING'}
+                </div>
+              </div>
+            )}
+
+            {/* Top Right - Rating */}
+            {property.rating && property.rating > 0 && (
+              <div className="absolute top-3 right-3 flex items-center space-x-1.5 px-3 py-1 rounded-md backdrop-blur-sm text-white shadow-sm" style={{ backgroundColor: 'rgba(45, 55, 72, 0.8)' }}>
+                <FaStar className="text-sm" style={{ color: '#FFD082' }} />
+                <span className="font-semibold text-sm">{property.rating}</span>
+              </div>
+            )}
+
+            {/* Bottom Left - Zero Brokerage */}
+            <div className="absolute bottom-3 left-3">
+              <div className="px-2.5 py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ backgroundColor: 'rgba(99, 179, 237, 0.8)' }}>
+                Zero Brokerage
+              </div>
+            </div>
+
+            {/* Bottom Right - Refundable Deposit */}
+            <div className="absolute bottom-3 right-3">
+              <div className="px-2.5 py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ backgroundColor: 'rgba(255, 208, 130, 0.8)' }}>
+                Refundable Deposit
+              </div>
+            </div>
+
             {images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/50 px-4 py-2 rounded-full">
+              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/50 px-4 py-2 rounded-full">
                 {images.map((_, index) => (
                   <button
                     key={index}
@@ -224,60 +266,44 @@ export default function PropertyDetails() {
                 ))}
               </div>
             )}
-
-            <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-              {property.instant_book && (
-                <span className="px-3 py-1.5 text-white text-sm font-bold rounded-full" style={{ backgroundColor: '#3AAFA9' }}>
-                  INSTANT BOOK
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6">
               <div className="flex-1">
+                {/* Verified/Secure Badges - Above Property Name */}
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {property.verified && (
+                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(99, 179, 237, 0.15)', borderColor: 'rgba(99, 179, 237, 0.3)', border: '1px solid', color: '#2D3748' }}>
+                      <MdVerified className="text-lg" style={{ color: '#63B3ED' }} />
+                      <span>Verified</span>
+                    </div>
+                  )}
+                  {property.secure_booking && (
+                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(255, 208, 130, 0.15)', borderColor: 'rgba(255, 208, 130, 0.3)', border: '1px solid', color: '#2D3748' }}>
+                      <MdSecurity className="text-lg" style={{ color: '#FFD082' }} />
+                      <span>Secure Booking</span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-3 mb-3">
                   <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                     {property.name}
                   </h1>
                   {property.property_type && (
-                    <span className="px-3 py-1.5 text-white text-sm font-bold rounded-lg" style={{ backgroundColor: '#2B7A78' }}>
+                    <span className="px-3 py-1.5 text-white text-sm font-bold rounded-lg" style={{ backgroundColor: '#FF6711' }}>
                       {property.property_type}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center text-gray-600 mb-4">
-                  <FaMapMarkerAlt className="mr-2" style={{ color: '#2B7A78' }} />
+                  <FaMapMarkerAlt className="mr-2" style={{ color: '#63B3ED' }} />
                   <span className="text-lg">
                     {property.area && property.city
                       ? `${property.area}, ${property.city}`
                       : property.city || property.area || property.address}
                   </span>
-                </div>
-
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {property.verified && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(58, 175, 169, 0.15)', borderColor: 'rgba(58, 175, 169, 0.3)', border: '1px solid', color: '#2B7A78' }}>
-                      <MdVerified className="text-lg" style={{ color: '#3AAFA9' }} />
-                      <span>Verified</span>
-                    </div>
-                  )}
-                  {property.secure_booking && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'rgba(43, 122, 120, 0.15)', borderColor: 'rgba(43, 122, 120, 0.3)', border: '1px solid', color: '#3AAFA9' }}>
-                      <MdSecurity className="text-lg" style={{ color: '#2B7A78' }} />
-                      <span>Secure Booking</span>
-                    </div>
-                  )}
-                  {property.rating && property.rating > 0 && (
-                    <div className="flex items-center space-x-1 px-3 py-1.5 rounded-full border" style={{ backgroundColor: 'rgba(58, 175, 169, 0.1)', borderColor: 'rgba(58, 175, 169, 0.3)' }}>
-                      <FaStar style={{ color: '#3AAFA9' }} />
-                      <span className="font-bold text-gray-900">{property.rating}</span>
-                      {property.review_count && property.review_count > 0 && (
-                        <span className="text-gray-600 text-sm">({property.review_count} reviews)</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -291,9 +317,9 @@ export default function PropertyDetails() {
                       }
                     }}
                     className="w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl mb-4"
-                    style={{ backgroundColor: '#3AAFA9' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                    style={{ backgroundColor: '#FF6711' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
                   >
                     Choose Room Type
                   </button>
@@ -302,9 +328,9 @@ export default function PropertyDetails() {
                   <Link
                     href={`/payment?propertyId=${property.id}&propertyType=Room${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
                     className="block w-full px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl mb-4 text-center"
-                    style={{ backgroundColor: '#3AAFA9' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                    style={{ backgroundColor: '#FF6711' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
                   >
                     Book Now
                   </Link>
@@ -385,11 +411,23 @@ export default function PropertyDetails() {
             {images && images.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Property Photos</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`gap-4 ${
+                  images.length === 1 
+                    ? 'flex justify-center' 
+                    : images.length === 2 
+                      ? 'grid grid-cols-2' 
+                      : images.length === 3 
+                        ? 'grid grid-cols-1 sm:grid-cols-3' 
+                        : 'grid grid-cols-2 md:grid-cols-4'
+                }`}>
                   {images.map((image, index) => (
                     <div
                       key={(image as any).id || index}
-                      className="relative h-40 rounded-xl overflow-hidden cursor-pointer group"
+                      className={`relative rounded-xl overflow-hidden cursor-pointer group ${
+                        images.length === 1 
+                          ? 'h-64 w-80 max-w-full' 
+                          : 'h-40'
+                      }`}
                       onClick={() => {
                         setCurrentImageIndex(index);
                         setShowImageModal(true);
@@ -411,37 +449,57 @@ export default function PropertyDetails() {
             {property.amenities && property.amenities.length > 0 && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">Amenities</h2>
-                  {property.amenities.length > 8 && (
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Free Amenities</h2>
+                  {property.amenities.length > 3 && (
                     <button
                       onClick={() => setShowAllAmenities(!showAllAmenities)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all hover:shadow-lg"
-                      style={{ borderColor: '#2B7A78', color: '#2B7A78' }}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border-2 transition-all hover:shadow-lg"
+                      style={{ borderColor: '#FF6711', color: '#FF6711' }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#2B7A78';
+                        e.currentTarget.style.backgroundColor = '#FF6711';
                         e.currentTarget.style.color = 'white';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = '#2B7A78';
+                        e.currentTarget.style.color = '#FF6711';
                       }}
                     >
-                      {showAllAmenities ? 'Show Less' : `Show More (${property.amenities.length - 8})`}
+                      {showAllAmenities ? 'Show Less' : `+${property.amenities.length - 3} More`}
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {(showAllAmenities ? property.amenities : property.amenities.slice(0, 8)).map((amenity) => {
-                    const IconComponent = amenityIcons[amenity.icon_name] || FaWifi;
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 sm:gap-6">
+                  {(showAllAmenities ? property.amenities : property.amenities.slice(0, 3)).map((amenity) => {
+                    // Professional Font Awesome icon mapping
+                    const getAmenityIcon = (name: string) => {
+                      const lowerName = name.toLowerCase();
+                      if (lowerName.includes('wifi') || lowerName.includes('internet')) return <FaWifi className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('ac') || lowerName.includes('air')) return <FaSnowflake className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('gym') || lowerName.includes('fitness')) return <FaDumbbell className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('parking')) return <FaParking className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('security') || lowerName.includes('cctv')) return <FaVideo className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('water')) return <FaTint className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('power') || lowerName.includes('backup')) return <FaBolt className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('laundry') || lowerName.includes('washing')) return <FaTshirt className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('kitchen') || lowerName.includes('food') || lowerName.includes('dining')) return <FaUtensils className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('cleaning') || lowerName.includes('housekeeping')) return <FaBroom className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('lounge') || lowerName.includes('common')) return <FaCouch className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('gaming') || lowerName.includes('game')) return <FaGamepad className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      if (lowerName.includes('biometric') || lowerName.includes('fingerprint')) return <FaFingerprint className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />;
+                      return <FaShieldAlt className="text-2xl sm:text-3xl" style={{ color: '#FF6711' }} />; // Default icon
+                    };
+
                     return (
                       <div
                         key={amenity.id}
-                        className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl border border-gray-200 min-w-0"
+                        className="flex flex-col items-center text-center p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-all duration-300"
                       >
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                          <IconComponent className="text-xl text-gray-700" />
+                        <div className="mb-2 sm:mb-3 flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16">
+                          {getAmenityIcon(amenity.name)}
                         </div>
-                        <span className="font-medium text-gray-900 truncate min-w-0 flex-1">{amenity.name}</span>
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 leading-tight">
+                          {amenity.name}
+                        </span>
                       </div>
                     );
                   })}
@@ -463,6 +521,7 @@ export default function PropertyDetails() {
                       const roomsOfType = (property as any).rooms.filter((room: any) => room.sharing_type === sharingType);
                       const lowestPrice = Math.min(...roomsOfType.map((room: any) => room.price_per_person));
                       const availableRooms = roomsOfType.filter((room: any) => room.available_beds > 0);
+                      const totalAvailableBeds = roomsOfType.reduce((sum: number, room: any) => sum + (room.available_beds || 0), 0);
                       
                       return (
                         <div
@@ -471,30 +530,33 @@ export default function PropertyDetails() {
                         >
                           <div className="text-center">
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{sharingType}</h3>
-                            <div className="text-2xl font-bold mb-1" style={{ color: '#3AAFA9' }}>
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#FF6711' }}>
                               ₹{lowestPrice.toLocaleString()}
                             </div>
                             <div className="text-sm text-gray-600 mb-4">per person/month</div>
                             
-                            {availableRooms.length > 0 ? (
-                              <div className="mb-4">
-                                <span className="text-sm font-medium" style={{ color: '#2B7A78' }}>
+                            {totalAvailableBeds > 0 ? (
+                              <div className="mb-4 space-y-1">
+                                <div className="text-sm font-medium" style={{ color: '#63B3ED' }}>
                                   {availableRooms.length} room{availableRooms.length > 1 ? 's' : ''} available
-                                </span>
+                                </div>
+                                <div className="text-xs font-medium" style={{ color: '#FF6711' }}>
+                                  {totalAvailableBeds} bed{totalAvailableBeds > 1 ? 's' : ''} free
+                                </div>
                               </div>
                             ) : (
                               <div className="mb-4">
-                                <span className="text-sm text-red-600 font-medium">No rooms available</span>
+                                <span className="text-sm text-red-600 font-medium">No beds available</span>
                               </div>
                             )}
 
-                            {availableRooms.length > 0 ? (
+                            {totalAvailableBeds > 0 ? (
                               <Link
                                 href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
                                 className="block w-full px-4 py-2 text-white font-semibold rounded-lg transition-all"
-                                style={{ backgroundColor: '#3AAFA9' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                                style={{ backgroundColor: '#FF6711' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
                               >
                                 Book Now
                               </Link>
@@ -538,9 +600,9 @@ export default function PropertyDetails() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center px-4 py-2 text-white font-semibold rounded-lg transition-all hover:shadow-lg"
-                      style={{ backgroundColor: '#3AAFA9' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2B7A78'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3AAFA9'}
+                      style={{ backgroundColor: '#FF6711' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
                     >
                       <FaMapMarkerAlt className="mr-2" />
                       View on Maps

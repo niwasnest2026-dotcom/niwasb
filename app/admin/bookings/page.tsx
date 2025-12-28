@@ -65,12 +65,57 @@ export default function AdminBookings() {
 
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
-      const { error } = await (supabase as any)
+      // Get the booking details first to know which room to update
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .select('room_id, booking_status')
+        .eq('id', bookingId)
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      const oldStatus = bookingData.booking_status;
+      
+      // Update booking status
+      const { error } = await supabase
         .from('bookings')
         .update({ booking_status: newStatus })
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      // Update available beds based on status change
+      if (oldStatus !== newStatus) {
+        const { data: roomData, error: roomError } = await supabase
+          .from('property_rooms')
+          .select('available_beds')
+          .eq('id', bookingData.room_id)
+          .single();
+
+        if (!roomError && roomData) {
+          let newAvailableBeds = roomData.available_beds;
+
+          // If changing from confirmed to cancelled/completed, increase available beds
+          if (oldStatus === 'confirmed' && (newStatus === 'cancelled' || newStatus === 'completed')) {
+            newAvailableBeds = roomData.available_beds + 1;
+          }
+          // If changing from cancelled to confirmed, decrease available beds
+          else if (oldStatus === 'cancelled' && newStatus === 'confirmed') {
+            newAvailableBeds = Math.max(0, roomData.available_beds - 1);
+          }
+
+          // Update the room's available beds if there was a change
+          if (newAvailableBeds !== roomData.available_beds) {
+            await supabase
+              .from('property_rooms')
+              .update({
+                available_beds: newAvailableBeds,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', bookingData.room_id);
+          }
+        }
+      }
       
       // Refresh bookings
       fetchBookings();

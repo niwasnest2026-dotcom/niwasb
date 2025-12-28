@@ -1,0 +1,440 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import { supabase } from '@/lib/supabase';
+import RazorpayPayment from '@/components/RazorpayPayment';
+
+interface Property {
+  id: string;
+  name: string;
+  price: number;
+  area?: string;
+  city?: string;
+  featured_image?: string;
+  security_deposit?: number;
+  available_months?: number;
+}
+
+export default function BookingSummaryPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const propertyId = searchParams.get('propertyId');
+  const roomId = searchParams.get('roomId');
+  const sharingType = searchParams.get('sharingType');
+  const propertyType = searchParams.get('propertyType');
+  const fullName = searchParams.get('fullName');
+  const email = searchParams.get('email');
+  const phone = searchParams.get('phone');
+  
+  const [property, setProperty] = useState<Property | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Get search parameters for duration and dates
+  const duration = searchParams.get('duration') || '';
+  const checkIn = searchParams.get('checkIn') || '';
+  const checkOut = searchParams.get('checkOut') || '';
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  useEffect(() => {
+    if (!propertyId || !fullName || !email || !phone) {
+      router.push('/');
+      return;
+    }
+
+    async function fetchProperty() {
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, name, price, area, city, featured_image, security_deposit, available_months')
+          .eq('id', propertyId!)
+          .single();
+
+        if (error) throw error;
+        setProperty(data);
+
+        // If roomId is provided, fetch room details
+        if (roomId) {
+          const { data: roomData, error: roomError } = await supabase
+            .from('property_rooms')
+            .select('*')
+            .eq('id', roomId)
+            .single();
+
+          if (roomError) throw roomError;
+          setSelectedRoom(roomData);
+        } else if (sharingType) {
+          // If sharingType is provided, fetch available rooms of that type
+          const { data: roomsData, error: roomsError } = await supabase
+            .from('property_rooms')
+            .select('*')
+            .eq('property_id', propertyId!)
+            .eq('sharing_type', sharingType!)
+            .gt('available_beds', 0);
+
+          if (roomsError) throw roomsError;
+          
+          if (roomsData && roomsData.length > 0) {
+            setAvailableRooms(roomsData);
+            // Use the first available room for pricing calculation
+            setSelectedRoom(roomsData[0]);
+          } else {
+            // No available rooms of this type
+            router.push(`/property/${propertyId}`);
+            return;
+          }
+        } else if (propertyType === 'Room') {
+          // For Room type properties, use property pricing directly
+          const mockRoom = {
+            id: `property_${propertyId}`,
+            property_id: propertyId,
+            room_number: 'Room',
+            sharing_type: 'Private Room',
+            price_per_person: (data as any).price,
+            security_deposit_per_person: (data as any).security_deposit || (data as any).price * 2,
+            available_beds: 1,
+            room_type: 'Room'
+          };
+          setSelectedRoom(mockRoom);
+        } else {
+          router.push(`/property/${propertyId}`);
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching property:', error);
+        router.push('/');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProperty();
+  }, [propertyId, roomId, sharingType, propertyType, fullName, email, phone, router]);
+
+  const handleConfirmBooking = () => {
+    if (!selectedRoom || !property) {
+      alert('Invalid booking details');
+      return;
+    }
+
+    // Redirect to payment details page with all necessary parameters
+    const params = new URLSearchParams({
+      propertyId: property.id,
+      fullName: fullName!,
+      email: email!,
+      phone: phone!,
+    });
+
+    // Add room/sharing type parameters
+    if (roomId) params.append('roomId', roomId);
+    if (sharingType) params.append('sharingType', sharingType);
+    if (propertyType) params.append('propertyType', propertyType);
+    
+    // Add duration and date parameters if available
+    if (duration) params.append('duration', duration);
+    if (checkIn) params.append('checkIn', checkIn);
+    if (checkOut) params.append('checkOut', checkOut);
+
+    router.push(`/payment-details?${params.toString()}`);
+  };
+
+  const handlePaymentSuccess = async (paymentId: string) => {
+    try {
+      // Calculate amounts
+      const securityDeposit = selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2;
+      const totalAmount = selectedRoom.price_per_person + securityDeposit;
+      const amountPaid = Math.round(selectedRoom.price_per_person * 0.2); // 20% of one month rent only
+      const amountDue = totalAmount - amountPaid; // Remaining amount
+
+      // Create the booking record
+      const bookingData = {
+        property_id: property!.id,
+        guest_name: fullName,
+        guest_email: email,
+        guest_phone: phone,
+        sharing_type: selectedRoom.sharing_type,
+        price_per_person: selectedRoom.price_per_person,
+        security_deposit_per_person: securityDeposit,
+        total_amount: totalAmount,
+        amount_paid: amountPaid,
+        amount_due: amountDue,
+        payment_method: 'razorpay',
+        payment_status: 'partial', // 20% paid
+        booking_status: 'confirmed',
+        payment_reference: paymentId,
+        payment_date: new Date().toISOString(),
+        duration_months: duration ? parseInt(duration) : null,
+        check_in_date: checkIn || null,
+        check_out_date: checkOut || null,
+        notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
+      };
+
+      // Only add room_id if it's not a mock room for Room type properties
+      if (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
+        (bookingData as any).room_id = selectedRoom.id;
+      }
+
+      const { data: bookingResult, error: bookingError } = await supabase
+        .from('bookings')
+        .insert(bookingData as any)
+        .select()
+        .single();
+
+      if (bookingError) {
+        throw bookingError;
+      }
+
+      // Show success message and redirect
+      alert(`🎉 Booking Confirmed! 
+      
+Booking ID: ${(bookingResult as any)?.id || 'Generated'}
+Payment ID: ${paymentId}
+Amount Paid: ₹${amountPaid.toLocaleString()}
+Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
+
+You will receive a confirmation email shortly.`);
+
+      // Redirect to home page
+      router.push('/');
+
+    } catch (error: any) {
+      console.error('Booking creation error:', error);
+      alert('Booking creation failed: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  const handlePaymentError = (error: string) => {
+    alert('Payment failed: ' + error);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+      </div>
+    );
+  }
+
+  if (!property || !selectedRoom) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Invalid booking details</h1>
+          <Link href="/" className="text-rose-500 hover:underline">
+            Go back home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #63B3ED 0%, #90CDF4 50%, #63B3ED 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
+      <div className="max-w-4xl mx-auto">
+        <Link
+          href={`/payment?propertyId=${propertyId}&roomId=${roomId}&sharingType=${sharingType}&propertyType=${propertyType}&duration=${duration}&checkIn=${checkIn}&checkOut=${checkOut}`}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/20 transition-colors mb-6"
+          style={{ color: '#2D3748' }}
+          title="Back to guest information"
+        >
+          <FaArrowLeft className="text-lg" />
+        </Link>
+
+        {/* Search Criteria Display */}
+        {(duration || (checkIn && checkOut)) && (
+          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(247, 250, 252, 0.8)' }}>
+            <div className="flex items-center flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-semibold" style={{ color: '#2D3748' }}>Your Booking:</span>
+              </div>
+              
+              {duration && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
+                    {duration} month{parseInt(duration) > 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              
+              {checkIn && checkOut && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
+                    {formatDate(checkIn)} - {formatDate(checkOut)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Summary</h1>
+            <p className="text-gray-600">Review your booking details before proceeding to payment</p>
+          </div>
+
+          {/* Property Details */}
+          <div className="border rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Property Details</h2>
+            <div className="flex items-start space-x-4">
+              {property.featured_image && (
+                <img
+                  src={property.featured_image}
+                  alt={property.name}
+                  className="w-24 h-24 rounded-lg object-cover"
+                />
+              )}
+              <div className="flex-1">
+                <h3 className="font-bold text-xl text-gray-900">{property.name}</h3>
+                <p className="text-gray-600 mb-2">
+                  {property.area && property.city
+                    ? `${property.area}, ${property.city}`
+                    : property.city || property.area}
+                </p>
+                <div className="mt-2">
+                  {propertyType === 'Room' ? (
+                    <div>
+                      <p className="text-lg font-medium text-gray-700">
+                        Private Room
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Entire room booking
+                      </p>
+                    </div>
+                  ) : sharingType ? (
+                    <div>
+                      <p className="text-lg font-medium text-gray-700">
+                        {selectedRoom.sharing_type}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {availableRooms.length} room{availableRooms.length > 1 ? 's' : ''} available
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-lg font-medium text-gray-700">
+                        Room {selectedRoom.room_number} - {selectedRoom.sharing_type}
+                      </p>
+                      {selectedRoom.room_type && (
+                        <p className="text-sm text-gray-500">{selectedRoom.room_type}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Guest Details */}
+          <div className="border rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Guest Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Full Name</p>
+                <p className="font-semibold text-gray-900">{fullName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="font-semibold text-gray-900">{email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Phone</p>
+                <p className="font-semibold text-gray-900">{phone}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Booking Details */}
+          <div className="border rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Booking Details</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  {propertyType === 'Room' ? 'Monthly rent' : 'Monthly rent (per person)'}
+                </span>
+                <span className="font-semibold">₹{selectedRoom.price_per_person.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  {propertyType === 'Room' ? 'Security deposit' : 'Security deposit (per person)'}
+                </span>
+                <span className="font-semibold">
+                  ₹{(selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2).toLocaleString()}
+                </span>
+              </div>
+              {property.available_months && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Available for</span>
+                  <span className="font-semibold">{property.available_months} month{property.available_months > 1 ? 's' : ''}</span>
+                </div>
+              )}
+              <hr />
+              <div className="flex justify-between text-lg">
+                <span className="font-medium text-gray-900">Total booking amount</span>
+                <span className="font-bold text-gray-900">
+                  ₹{(selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Structure Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <h3 className="text-lg font-bold text-blue-800 mb-3">Payment Structure</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-blue-700">Pay now (20% of monthly rent)</span>
+                <span className="font-bold text-blue-800">
+                  ₹{Math.round(selectedRoom.price_per_person * 0.2).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-blue-700">Pay to owner (remaining amount)</span>
+                <span className="font-bold text-blue-800">
+                  ₹{Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) - (selectedRoom.price_per_person * 0.2)).toLocaleString()}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <div className="flex items-center">
+                <FaCheckCircle className="text-blue-600 mr-2" />
+                <span className="text-blue-700 text-sm">Secure booking with instant confirmation</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Razorpay Payment Component */}
+          <RazorpayPayment
+            amount={Math.round(selectedRoom.price_per_person * 0.2)}
+            bookingId={`${property.id}_${Date.now()}`}
+            guestName={fullName!}
+            guestEmail={email!}
+            guestPhone={phone!}
+            propertyName={property.name}
+            roomNumber={selectedRoom.room_number || selectedRoom.sharing_type}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

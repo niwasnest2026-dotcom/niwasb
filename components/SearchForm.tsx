@@ -147,10 +147,13 @@ export default function SearchForm() {
     setIsLoadingProperties(true);
     
     try {
+      // Escape special characters for SQL LIKE query
+      const searchTerm = searchCity.trim().replace(/[%_]/g, '\\$&');
+      
       const { data, error } = await supabase
         .from('properties')
         .select('id, name, city, area, address, price, property_type')
-        .or(`city.ilike.%${searchCity}%,area.ilike.%${searchCity}%,name.ilike.%${searchCity}%`)
+        .or(`city.ilike.%${searchTerm}%,area.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
         .limit(6);
 
       if (error) {
@@ -242,15 +245,15 @@ export default function SearchForm() {
   };
 
   return (
-    <div className="saas-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-4xl mx-auto border-gradient">
+    <div className="modern-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <div className="space-y-4 sm:space-y-6">
         {/* Location Search */}
         <div className="relative">
-          <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+          <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
             Where do you want to stay?
           </label>
           <div className="relative">
-            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
             <input
               ref={cityInputRef}
               type="text"
@@ -258,14 +261,27 @@ export default function SearchForm() {
               onChange={handleCityInputChange}
               onFocus={handleCityInputFocus}
               placeholder="Search city, area or property"
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl placeholder-neutral/50 text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
+              style={{ 
+                borderColor: 'rgba(99, 179, 237, 0.3)',
+                backgroundColor: '#F7FAFC',
+                color: '#2D3748'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#63B3ED';
+                handleCityInputFocus();
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)';
+              }}
             />
             
             {/* City Suggestions Dropdown */}
             {showSuggestions && (
               <div 
                 ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 saas-card border-2 border-primary/10 rounded-lg sm:rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto mt-2"
+                className="absolute top-full left-0 right-0 modern-card border-2 rounded-lg sm:rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto mt-2"
+                style={{ borderColor: 'rgba(99, 179, 237, 0.2)' }}
               >
                 {/* Use Current Location Option */}
                 {locationPermission !== 'denied' && (
@@ -274,18 +290,18 @@ export default function SearchForm() {
                     disabled={isGettingLocation}
                     className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 border-b border-primary/10 disabled:opacity-50 transition-all duration-300"
                   >
-                    <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FF6711' }}>
                       {isGettingLocation ? (
-                        <FaSpinner className="animate-spin text-neutral-white text-sm sm:text-lg" />
+                        <FaSpinner className="animate-spin text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
                       ) : (
-                        <FaLocationArrow className="text-neutral-white text-sm sm:text-lg" />
+                        <FaLocationArrow className="text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
                       )}
                     </div>
                     <div>
-                      <div className="font-semibold text-secondary text-base sm:text-lg">
+                      <div className="font-semibold text-base sm:text-lg" style={{ color: '#FF6711' }}>
                         {isGettingLocation ? 'Getting location...' : 'Use current location'}
                       </div>
-                      <div className="text-neutral/70 text-sm sm:text-base">Properties near me</div>
+                      <div className="text-sm sm:text-base" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>Properties near me</div>
                     </div>
                   </button>
                 )}
@@ -293,20 +309,29 @@ export default function SearchForm() {
                 {/* Recent Searches */}
                 {recentSearches.length > 0 && !city.trim() && (
                   <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
                       Recent searches
                     </div>
                     {recentSearches.map((recentCity, index) => (
                       <button
                         key={`recent-${index}`}
                         onClick={() => handleCitySelect(recentCity)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        style={{ 
+                          backgroundColor: 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-neutral-light rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <FaHistory className="text-secondary text-sm sm:text-lg" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EDF2F7' }}>
+                          <FaHistory className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
                         </div>
                         <div>
-                          <div className="font-semibold text-neutral text-base sm:text-lg">{recentCity}</div>
+                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{recentCity}</div>
                         </div>
                       </button>
                     ))}
@@ -316,22 +341,31 @@ export default function SearchForm() {
                 {/* Locality Suggestions - Show first when typing */}
                 {city.trim() && filteredCities.length > 0 && (
                   <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
                       Cities
                     </div>
                     {filteredCities.slice(0, 5).map((cityName, index) => (
                       <button
                         key={`filtered-${index}`}
                         onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        style={{ 
+                          backgroundColor: 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <FaMapMarkerAlt className="text-secondary text-sm sm:text-lg" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 179, 237, 0.2)' }}>
+                          <FaMapMarkerAlt className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold text-neutral text-base sm:text-lg">{cityName}</div>
+                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{cityName}</div>
                         </div>
-                        <div className="text-xs sm:text-sm text-neutral/70 bg-primary/10 px-2 sm:px-3 py-1 rounded-lg font-medium">
+                        <div className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.7)', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
                           City
                         </div>
                       </button>
@@ -342,7 +376,7 @@ export default function SearchForm() {
                 {/* Properties from Database - Show only for complete city names */}
                 {city.trim() && properties.length > 0 && (
                   <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide flex items-center justify-between">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide flex items-center justify-between" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
                       <span>Properties in {city}</span>
                       {isLoadingProperties && <FaSpinner className="animate-spin text-base sm:text-lg" />}
                     </div>
@@ -350,23 +384,33 @@ export default function SearchForm() {
                       <button
                         key={property.id}
                         onClick={() => handlePropertySelect(property)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 border-b border-primary/5 last:border-b-0 transition-all duration-300"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 border-b last:border-b-0 transition-all duration-300"
+                        style={{ 
+                          backgroundColor: 'transparent',
+                          borderColor: 'rgba(99, 179, 237, 0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-secondary to-primary rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <FaBuilding className="text-neutral-white text-sm sm:text-lg" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FF6711' }}>
+                          <FaBuilding className="text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-neutral text-base sm:text-lg truncate">{property.name}</div>
-                          <div className="text-neutral/70 text-sm sm:text-base mb-1">
+                          <div className="font-semibold text-base sm:text-lg truncate" style={{ color: '#2D3748' }}>{property.name}</div>
+                          <div className="text-sm sm:text-base mb-1" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
                             <span className="truncate">{property.address}</span>
                           </div>
-                          <div className="text-neutral/70 flex items-center space-x-2 text-sm sm:text-base">
+                          <div className="flex items-center space-x-2 text-sm sm:text-base" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
                             <span>{property.area || property.city}</span>
-                            <span className="text-primary/50">•</span>
-                            <span className="font-bold text-secondary">₹{property.price?.toLocaleString()}/month</span>
+                            <span style={{ color: 'rgba(99, 179, 237, 0.5)' }}>•</span>
+                            <span className="font-bold" style={{ color: '#FF6711' }}>₹{property.price?.toLocaleString()}/month</span>
                           </div>
                         </div>
-                        <div className="text-xs sm:text-sm text-neutral/70 bg-secondary/10 px-2 sm:px-3 py-1 rounded-lg font-medium">
+                        <div className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.7)', backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
                           Property
                         </div>
                       </button>
@@ -377,20 +421,29 @@ export default function SearchForm() {
                 {/* Popular Cities */}
                 {!city.trim() && (
                   <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-neutral uppercase bg-primary/5 tracking-wide">
+                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
                       Popular cities
                     </div>
                     {popularCities.slice(0, 10).map((cityName, index) => (
                       <button
                         key={`popular-${index}`}
                         onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
+                        style={{ 
+                          backgroundColor: 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <FaMapMarkerAlt className="text-secondary text-sm sm:text-lg" />
+                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 179, 237, 0.2)' }}>
+                          <FaMapMarkerAlt className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
                         </div>
                         <div>
-                          <div className="font-semibold text-neutral text-base sm:text-lg">{cityName}</div>
+                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{cityName}</div>
                         </div>
                       </button>
                     ))}
@@ -399,7 +452,7 @@ export default function SearchForm() {
 
                 {/* No Results */}
                 {city.trim() && !isLoadingProperties && properties.length === 0 && filteredCities.length === 0 && (
-                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center text-neutral/70">
+                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
                     <div className="text-base sm:text-lg font-medium">No cities or properties found matching "{city}"</div>
                     <div className="text-sm mt-2">Try searching for a popular city name</div>
                   </div>
@@ -407,8 +460,8 @@ export default function SearchForm() {
 
                 {/* Loading State */}
                 {city.trim() && isLoadingProperties && (
-                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center text-neutral/70">
-                    <FaSpinner className="animate-spin mx-auto mb-3 text-xl sm:text-2xl text-secondary" />
+                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
+                    <FaSpinner className="animate-spin mx-auto mb-3 text-xl sm:text-2xl" style={{ color: '#FF6711' }} />
                     <div className="text-base sm:text-lg font-medium">Searching for properties in {city}...</div>
                   </div>
                 )}
@@ -421,15 +474,22 @@ export default function SearchForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Duration Selection */}
           <div className="relative">
-            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
               Duration
             </label>
             <div className="relative">
-              <FaClock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <FaClock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg appearance-none cursor-pointer"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg appearance-none cursor-pointer"
+                style={{ 
+                  borderColor: 'rgba(99, 179, 237, 0.3)',
+                  backgroundColor: '#F7FAFC',
+                  color: '#2D3748'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#63B3ED'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)'}
               >
                 {durationOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -438,7 +498,7 @@ export default function SearchForm() {
                 ))}
               </select>
               <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#63B3ED' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -447,21 +507,28 @@ export default function SearchForm() {
 
           {/* Check-in Date */}
           <div className="relative">
-            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
               Check-in Date
             </label>
             <div className="relative">
-              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
               <input
                 type="date"
                 value={checkInDate}
                 onChange={(e) => setCheckInDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 focus:border-secondary outline-none text-neutral bg-neutral-white rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
+                style={{ 
+                  borderColor: 'rgba(99, 179, 237, 0.3)',
+                  backgroundColor: '#F7FAFC',
+                  color: '#2D3748'
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#63B3ED'}
+                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)'}
               />
             </div>
             {checkInDate && (
-              <div className="mt-1 text-xs sm:text-sm text-secondary font-medium">
+              <div className="mt-1 text-xs sm:text-sm font-medium" style={{ color: '#63B3ED' }}>
                 {formatDate(checkInDate)}
               </div>
             )}
@@ -469,20 +536,25 @@ export default function SearchForm() {
 
           {/* Check-out Date */}
           <div className="relative">
-            <label className="block text-sm font-semibold text-neutral mb-2 sm:mb-3 uppercase tracking-wide">
+            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
               Check-out Date
             </label>
             <div className="relative">
-              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-secondary text-base sm:text-lg z-10" />
+              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
               <input
                 type="date"
                 value={checkOutDate}
                 readOnly
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 border-primary/20 outline-none text-neutral bg-neutral-100 rounded-lg sm:rounded-xl text-base sm:text-lg font-medium cursor-not-allowed"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium cursor-not-allowed"
+                style={{ 
+                  borderColor: 'rgba(99, 179, 237, 0.3)',
+                  backgroundColor: '#EDF2F7',
+                  color: '#2D3748'
+                }}
               />
             </div>
             {checkOutDate && (
-              <div className="mt-1 text-xs sm:text-sm text-secondary font-medium">
+              <div className="mt-1 text-xs sm:text-sm font-medium" style={{ color: '#63B3ED' }}>
                 {formatDate(checkOutDate)}
               </div>
             )}
@@ -491,7 +563,18 @@ export default function SearchForm() {
 
         <button
           onClick={handleSearch}
-          className="saas-button-primary w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+          className="w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl text-white"
+          style={{ backgroundColor: '#FF6711' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#E55A0F';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 103, 17, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#FF6711';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+          }}
         >
           <FaSearch />
           <span>Search Properties</span>

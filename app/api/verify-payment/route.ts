@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Start a transaction-like operation
     const { data: bookingData, error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -72,6 +73,31 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    // Update available beds count - decrease by 1
+    // First get the current available beds count
+    const { data: roomData, error: roomError } = await supabase
+      .from('property_rooms')
+      .select('available_beds')
+      .eq('id', booking_details.room_id)
+      .single();
+
+    if (!roomError && roomData && roomData.available_beds > 0) {
+      // Decrease available beds by 1
+      const { error: updateError } = await supabase
+        .from('property_rooms')
+        .update({
+          available_beds: roomData.available_beds - 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', booking_details.room_id);
+
+      if (updateError) {
+        console.error('Failed to update available beds:', updateError);
+      }
+    } else {
+      console.error('Room not found or no available beds:', roomError);
     }
 
     return NextResponse.json({

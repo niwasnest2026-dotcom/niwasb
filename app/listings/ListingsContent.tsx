@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FaMapMarkerAlt, FaTh, FaList, FaTimes, FaSort, FaFilter, FaCalendarAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaTimes, FaCalendarAlt } from 'react-icons/fa';
 import PropertyCard from '@/components/PropertyCard';
 import { supabase } from '@/lib/supabase';
 import type { PropertyWithDetails } from '@/types/database';
@@ -11,9 +11,6 @@ export default function ListingsContent() {
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<PropertyWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('recommended');
-  const [showFilters, setShowFilters] = useState(false);
 
   const city = searchParams.get('city') || '';
   const area = searchParams.get('area') || '';
@@ -48,8 +45,11 @@ export default function ListingsContent() {
         `);
 
       const cityParam = searchParams.get('city');
-      if (cityParam) {
-        query = query.eq('city', cityParam);
+      if (cityParam && cityParam.trim()) {
+        // Use case-insensitive search across city, area, and property name
+        // Escape special characters for SQL LIKE query
+        const searchTerm = cityParam.trim().replace(/[%_]/g, '\\$&');
+        query = query.or(`city.ilike.%${searchTerm}%,area.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`);
       }
 
       const areaParam = searchParams.get('area');
@@ -57,15 +57,8 @@ export default function ListingsContent() {
         query = query.ilike('area', `%${areaParam}%`);
       }
 
-      if (sortBy === 'price_low') {
-        query = query.order('price', { ascending: true });
-      } else if (sortBy === 'price_high') {
-        query = query.order('price', { ascending: false });
-      } else if (sortBy === 'rating') {
-        query = query.order('rating', { ascending: false });
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
+      // Default sorting by created_at (newest first)
+      query = query.order('created_at', { ascending: false });
 
       const { data, error } = await query;
 
@@ -83,14 +76,14 @@ export default function ListingsContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchParams, sortBy]);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProperties();
   }, [fetchProperties]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Search Summary */}
       <div className="flex items-start md:items-center justify-between mb-6 gap-4 flex-col md:flex-row">
         <div className="flex items-center flex-wrap gap-2">
@@ -148,54 +141,6 @@ export default function ListingsContent() {
             </span>
           </div>
         )}
-
-        <div className="hidden md:flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm" style={{ color: 'rgba(23, 37, 42, 0.7)' }}>SORT BY:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-lg px-3 py-2 text-sm focus:outline-none"
-              style={{ 
-                border: '1px solid rgba(43, 122, 120, 0.3)',
-                backgroundColor: '#FEFFFF',
-                color: '#17252A'
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = '#3AAFA9'}
-              onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(43, 122, 120, 0.3)'}
-            >
-              <option value="recommended">Recommended</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-              <option value="rating">Rating</option>
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2 rounded-lg p-1" style={{ border: '1px solid rgba(43, 122, 120, 0.3)' }}>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list' 
-                  ? 'text-white' 
-                  : 'hover:bg-neutral-100'
-              }`}
-              style={viewMode === 'list' ? { backgroundColor: '#3AAFA9' } : { color: '#17252A' }}
-            >
-              <FaList />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid' 
-                  ? 'text-white' 
-                  : 'hover:bg-neutral-100'
-              }`}
-              style={viewMode === 'grid' ? { backgroundColor: '#3AAFA9' } : { color: '#17252A' }}
-            >
-              <FaTh />
-            </button>
-          </div>
-        </div>
       </div>
 
       {loading ? (
@@ -208,46 +153,12 @@ export default function ListingsContent() {
           <p className="mt-2" style={{ color: 'rgba(23, 37, 42, 0.5)' }}>Try adjusting your search criteria</p>
         </div>
       ) : (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-6'
-          }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {properties.map((property) => (
             <PropertyCard key={property.id} property={property} />
           ))}
         </div>
       )}
-
-      <div className="fixed bottom-0 left-0 right-0 p-4 md:hidden" style={{ 
-        backgroundColor: '#FEFFFF', 
-        borderTop: '1px solid rgba(43, 122, 120, 0.2)' 
-      }}>
-        <div className="flex space-x-4 max-w-7xl mx-auto">
-          <button
-            onClick={() => setShowFilters(true)}
-            className="flex-1 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2"
-            style={{ 
-              backgroundColor: '#FEFFFF', 
-              border: '2px solid #3AAFA9', 
-              color: '#3AAFA9' 
-            }}
-          >
-            <FaFilter />
-            <span>Filters</span>
-          </button>
-          <button
-            onClick={() => {}}
-            className="flex-1 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2"
-            style={{ backgroundColor: '#3AAFA9' }}
-          >
-            <FaSort />
-            <span>Sort</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

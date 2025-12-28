@@ -31,6 +31,7 @@ export interface Database {
           google_maps_url: string | null
           latitude: number | null
           longitude: number | null
+          gender_preference: string | null
           created_at: string | null
         }
         Insert: {
@@ -54,6 +55,7 @@ export interface Database {
           google_maps_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          gender_preference?: string | null
           created_at?: string | null
         }
         Update: {
@@ -77,6 +79,7 @@ export interface Database {
           google_maps_url?: string | null
           latitude?: number | null
           longitude?: number | null
+          gender_preference?: string | null
           created_at?: string | null
         }
       }
