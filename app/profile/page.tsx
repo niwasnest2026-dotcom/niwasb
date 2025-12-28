@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaUser, FaEnvelope, FaPhone } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
@@ -191,11 +191,10 @@ export default function ProfilePage() {
               {!editing ? (
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex items-center justify-center w-12 h-12 bg-white rounded-full hover:bg-gray-50 transition-colors shadow-lg"
+                  className="px-4 py-2 bg-white font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-lg"
                   style={{ color: '#FF6711' }}
-                  title="Edit Profile"
                 >
-                  <span className="text-xl">✎</span>
+                  Edit Profile
                 </button>
               ) : null}
             </div>
@@ -240,9 +239,9 @@ export default function ProfilePage() {
                     <FaEnvelope style={{ color: '#63B3ED' }} />
                     <span className="text-gray-900">{user.email}</span>
                   </div>
-                  <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
-                    Cannot be changed
-                  </span>
+                  <div className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded-full">
+                    <FaLock className="text-xs" />
+                  </div>
                 </div>
               </div>
 
@@ -340,32 +339,43 @@ export default function ProfilePage() {
             {/* Save/Cancel Buttons - Only show when editing */}
             {editing && (
               <div className="mt-8 pt-8 border-t border-gray-200">
-                <div className="flex justify-center gap-6">
+                <div className="flex justify-center gap-4">
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full text-white font-bold text-xl sm:text-2xl transition-all hover:shadow-lg disabled:opacity-50"
-                    style={{ backgroundColor: '#10B981' }}
-                    onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = '#059669')}
-                    onMouseLeave={(e) => !saving && (e.currentTarget.style.backgroundColor = '#10B981')}
-                    title="Save changes"
+                    className="px-6 py-3 text-white font-semibold rounded-lg transition-all hover:shadow-lg disabled:opacity-50 min-w-[120px]"
+                    style={{ backgroundColor: '#FF6711' }}
+                    onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = '#E55A0F')}
+                    onMouseLeave={(e) => !saving && (e.currentTarget.style.backgroundColor = '#FF6711')}
                   >
                     {saving ? (
-                      <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-white"></div>
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </div>
                     ) : (
-                      '✓'
+                      'Save Changes'
                     )}
                   </button>
                   <button
                     onClick={handleCancel}
                     disabled={saving}
-                    className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full text-white font-bold text-xl sm:text-2xl transition-all hover:shadow-lg disabled:opacity-50"
-                    style={{ backgroundColor: '#EF4444' }}
-                    onMouseEnter={(e) => !saving && (e.currentTarget.style.backgroundColor = '#DC2626')}
-                    onMouseLeave={(e) => !saving && (e.currentTarget.style.backgroundColor = '#EF4444')}
-                    title="Cancel changes"
+                    className="px-6 py-3 border-2 font-semibold rounded-lg transition-all hover:shadow-lg disabled:opacity-50 min-w-[120px]"
+                    style={{ borderColor: '#63B3ED', color: '#63B3ED' }}
+                    onMouseEnter={(e) => {
+                      if (!saving) {
+                        e.currentTarget.style.backgroundColor = '#63B3ED';
+                        e.currentTarget.style.color = 'white';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!saving) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#63B3ED';
+                      }
+                    }}
                   >
-                    ↶
+                    Cancel
                   </button>
                 </div>
               </div>
