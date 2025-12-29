@@ -13,7 +13,7 @@ export default function FeaturedProperties() {
     try {
       setLoading(true);
 
-      // Simplified query - fetch only essential data first
+      // First, try to get properties with rooms
       const { data, error } = await supabase
         .from('properties')
         .select(`
@@ -25,27 +25,66 @@ export default function FeaturedProperties() {
           featured_image,
           property_type,
           gender_preference,
-          available_beds,
-          total_beds,
           rating,
-          created_at
+          created_at,
+          rooms:property_rooms(
+            available_beds,
+            total_beds
+          )
         `)
-        .eq('is_available', true)
         .order('created_at', { ascending: false })
-        .limit(6); // Reduced from 12 to 6 for faster loading
+        .limit(6);
 
       if (error) throw error;
 
-      // Set properties with minimal data structure
-      const formattedProperties = data?.map((property: any) => ({
-        ...property,
-        amenities: [], // Load amenities on demand
-        images: [], // Load images on demand
-      })) || [];
+      // Format properties - show all properties, filter by availability if rooms exist
+      const formattedProperties = data?.map((property: any) => {
+        const totalAvailableBeds = property.rooms?.reduce((sum: number, room: any) => 
+          sum + (room.available_beds || 0), 0) || 0;
+        
+        return {
+          ...property,
+          amenities: [], // Load amenities on demand
+          images: [], // Load images on demand
+          hasAvailableBeds: totalAvailableBeds > 0 || !property.rooms || property.rooms.length === 0
+        };
+      }).filter((property: any) => property.hasAvailableBeds) || [];
 
       setProperties(formattedProperties);
     } catch (error) {
       console.error('Error fetching properties:', error);
+      // Fallback: try to get properties without rooms
+      try {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('properties')
+          .select(`
+            id,
+            name,
+            price,
+            area,
+            city,
+            featured_image,
+            property_type,
+            gender_preference,
+            rating,
+            created_at
+          `)
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        if (fallbackError) throw fallbackError;
+
+        const fallbackProperties = fallbackData?.map((property: any) => ({
+          ...property,
+          amenities: [],
+          images: [],
+          rooms: []
+        })) || [];
+
+        setProperties(fallbackProperties);
+      } catch (fallbackErr) {
+        console.error('Fallback query also failed:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }

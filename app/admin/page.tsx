@@ -139,6 +139,29 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {/* Add Setup Card if no properties exist */}
+          {stats.totalProperties === 0 && (
+            <div className="md:col-span-2 mb-6">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">🚀</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-blue-900">Get Started</h3>
+                    <p className="text-blue-700 text-sm">No properties found. Add sample properties to get started!</p>
+                  </div>
+                  <Link
+                    href="/admin/setup"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                  >
+                    Setup Now
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Link
             href="/admin/properties"
             className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group"
