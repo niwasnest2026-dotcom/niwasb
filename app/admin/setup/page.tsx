@@ -24,7 +24,7 @@ export default function AdminSetup() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage(`Success! ${data.message}. Properties: ${data.propertiesAdded || 0}, Rooms: ${data.roomsAdded || 0}`);
+        setMessage(`Success! ${data.message}. Properties: ${data.propertiesAdded || 0}, Rooms: ${data.roomsAdded || 0}, Images: ${data.imagesAdded || 0}`);
       } else {
         setError(data.error || 'Failed to add sample properties');
       }
@@ -61,6 +61,9 @@ export default function AdminSetup() {
                 <li>• Sunrise PG for Students (MG Road, Bangalore) - ₹12,000/month</li>
                 <li>• Green Valley PG (Koramangala, Bangalore) - ₹10,000/month</li>
                 <li>• Elite Residency (Brigade Road, Bangalore) - ₹15,000/month</li>
+                <li>• Each property includes 4 high-quality images</li>
+                <li>• Multiple room types (Single, Double, Triple sharing)</li>
+                <li>• Realistic pricing and availability data</li>
               </ul>
             </div>
 

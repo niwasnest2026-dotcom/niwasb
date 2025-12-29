@@ -126,11 +126,63 @@ export async function POST(request: NextRequest) {
 
     if (roomsError) throw roomsError;
 
+    // Add multiple images for each property
+    const sampleImages: any[] = [];
+    for (let i = 0; i < (insertedProperties?.length || 0); i++) {
+      const property = insertedProperties![i];
+      const propertyImages = [
+        {
+          property_id: (property as any).id,
+          image_url: i === 0 
+            ? 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&h=600&fit=crop'
+            : i === 1 
+              ? 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'
+              : 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+          display_order: 1
+        },
+        {
+          property_id: (property as any).id,
+          image_url: i === 0 
+            ? 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop'
+            : i === 1 
+              ? 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+              : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
+          display_order: 2
+        },
+        {
+          property_id: (property as any).id,
+          image_url: i === 0 
+            ? 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop'
+            : i === 1 
+              ? 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop'
+              : 'https://images.unsplash.com/photo-1571624436279-b272aff752b5?w=800&h=600&fit=crop',
+          display_order: 3
+        },
+        {
+          property_id: (property as any).id,
+          image_url: i === 0 
+            ? 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop'
+            : i === 1 
+              ? 'https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&h=600&fit=crop'
+              : 'https://images.unsplash.com/photo-1567767292278-a4f21aa2d36e?w=800&h=600&fit=crop',
+          display_order: 4
+        }
+      ];
+      sampleImages.push(...propertyImages);
+    }
+
+    const { error: imagesError } = await supabase
+      .from('property_images')
+      .insert(sampleImages as any);
+
+    if (imagesError) throw imagesError;
+
     return NextResponse.json({
       success: true,
-      message: 'Sample properties and rooms added successfully',
+      message: 'Sample properties, rooms, and images added successfully',
       propertiesAdded: insertedProperties?.length || 0,
-      roomsAdded: sampleRooms.length
+      roomsAdded: sampleRooms.length,
+      imagesAdded: sampleImages.length
     });
 
   } catch (error: any) {

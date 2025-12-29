@@ -242,20 +242,49 @@ export default function PropertyDetails() {
               />
             )}
 
+            {/* Navigation Arrows for Multiple Images */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* Image Counter */}
+            {images.length > 1 && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                {currentImageIndex + 1} / {images.length}
+              </div>
+            )}
+
             {/* Top Left - Gender Preference */}
             {(property as any).gender_preference && (
               <div className="absolute top-3 left-3">
                 <div className="px-2.5 py-1 rounded-md backdrop-blur-sm text-white text-xs font-semibold shadow-sm" style={{ 
-                  backgroundColor: (property as any).gender_preference === 'Male' 
+                  backgroundColor: (property as any).gender_preference === 'boys' 
                     ? 'rgba(255, 103, 17, 0.8)' 
-                    : (property as any).gender_preference === 'Female'
+                    : (property as any).gender_preference === 'girls'
                     ? 'rgba(255, 208, 130, 0.8)'
                     : 'rgba(99, 179, 237, 0.8)' // Co-living
                 }}>
-                  {(property as any).gender_preference === 'Male' 
-                    ? 'MALE PG' 
-                    : (property as any).gender_preference === 'Female'
-                    ? 'FEMALE PG'
+                  {(property as any).gender_preference === 'boys' 
+                    ? 'BOYS PG' 
+                    : (property as any).gender_preference === 'girls'
+                    ? 'GIRLS PG'
                     : 'CO-LIVING'}
                 </div>
               </div>
@@ -283,6 +312,7 @@ export default function PropertyDetails() {
               </div>
             </div>
 
+            {/* Image Dots Navigation */}
             {images.length > 1 && (
               <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/50 px-4 py-2 rounded-full">
                 {images.map((_, index) => (
@@ -298,6 +328,16 @@ export default function PropertyDetails() {
                 ))}
               </div>
             )}
+
+            {/* Click to View Full Image */}
+            <button
+              onClick={() => setShowImageModal(true)}
+              className="absolute inset-0 bg-transparent hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100"
+            >
+              <div className="bg-black/50 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+                <span className="text-sm font-medium">Click to view full image</span>
+              </div>
+            </button>
           </div>
 
           <div className="p-8">
@@ -386,89 +426,6 @@ export default function PropertyDetails() {
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                   {property.description}
                 </p>
-              </div>
-            )}
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Property Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Pricing</h3>
-                  <div className="space-y-2">
-                    {(property as any).rooms && (property as any).rooms.length > 0 ? (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Starting from</span>
-                          <span className="font-semibold">
-                            ₹{Math.min(...(property as any).rooms.map((room: any) => room.price_per_person)).toLocaleString()}/person
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500">Prices vary by room type and sharing</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Monthly rent</span>
-                          <span className="font-semibold">₹{property.price.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Security deposit</span>
-                          <span className="font-semibold">₹{((property as any).security_deposit || property.price * 2).toLocaleString()}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                {(property as any).available_months && (
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="font-semibold text-gray-900 mb-3">Availability</h3>
-                    <div className="flex items-center space-x-2">
-                      <FaClock style={{ color: '#2B7A78' }} />
-                      <span className="text-gray-700">
-                        Available for {(property as any).available_months} month{(property as any).available_months > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {images && images.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Property Photos</h2>
-                <div className={`gap-4 ${
-                  images.length === 1 
-                    ? 'flex justify-center' 
-                    : images.length === 2 
-                      ? 'grid grid-cols-2' 
-                      : images.length === 3 
-                        ? 'grid grid-cols-1 sm:grid-cols-3' 
-                        : 'grid grid-cols-2 md:grid-cols-4'
-                }`}>
-                  {images.map((image, index) => (
-                    <div
-                      key={(image as any).id || index}
-                      className={`relative rounded-xl overflow-hidden cursor-pointer group ${
-                        images.length === 1 
-                          ? 'h-64 w-80 max-w-full' 
-                          : 'h-40'
-                      }`}
-                      onClick={() => {
-                        setCurrentImageIndex(index);
-                        setShowImageModal(true);
-                      }}
-                    >
-                      <Image
-                        src={image.image_url}
-                        alt={`${property.name} - Photo ${index + 1}`}
-                        fill
-                        className="object-cover transition-transform group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
