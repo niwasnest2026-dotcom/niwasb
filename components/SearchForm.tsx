@@ -181,7 +181,12 @@ export default function SearchForm() {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 className="w-full pl-16 pr-6 py-5 text-xl font-medium border-3 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none transition-all shadow-sm"
-                style={{ fontSize: '18px' }}
+                style={{ 
+                  fontSize: '18px', 
+                  color: '#111827 !important',
+                  backgroundColor: '#ffffff',
+                  WebkitTextFillColor: '#111827'
+                }}
               />
             </div>
 
@@ -256,6 +261,11 @@ export default function SearchForm() {
                   onChange={(e) => setMoveInDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full pl-12 pr-4 py-4 text-lg font-medium border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+                  style={{ 
+                    color: '#111827 !important',
+                    backgroundColor: '#ffffff',
+                    WebkitTextFillColor: '#111827'
+                  }}
                 />
               </div>
             </div>

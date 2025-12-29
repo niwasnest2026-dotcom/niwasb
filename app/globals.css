@@ -205,3 +205,54 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #4299E1;
   }
 }
+
+/* Form Input Text Visibility Fix */
+input[type="text"], 
+input[type="date"], 
+input[type="email"], 
+input[type="password"], 
+input[type="search"],
+textarea, 
+select {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+input[type="text"]:focus, 
+input[type="date"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+input[type="search"]:focus,
+textarea:focus, 
+select:focus {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Date input specific styling */
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #111827 !important;
+}
+
+/* Placeholder styling */
+::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+::-webkit-input-placeholder {
+  color: #6b7280 !important;
+}
+
+::-moz-placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+:-ms-input-placeholder {
+  color: #6b7280 !important;
+}
