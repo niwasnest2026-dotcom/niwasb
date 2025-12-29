@@ -234,7 +234,7 @@ export default function BookingSummaryPage() {
       const bookingData: any = {
         property_id: property!.id,
         guest_name: fullName,
-        guest_email: email,
+        guest_email: user.email, // Always use authenticated user's email
         guest_phone: phone,
         guest_whatsapp: whatsappNumber,
         sharing_type: selectedRoom.sharing_type,
@@ -303,26 +303,35 @@ export default function BookingSummaryPage() {
             guestName: fullName,
             guestWhatsapp: whatsappNumber,
             propertyName: property!.name,
+            propertyLocation: property!.area && property!.city 
+              ? `${property!.area}, ${property!.city}` 
+              : property!.city || property!.area,
             paymentId,
             bookingId,
             amountPaid,
-            amountDue
+            amountDue,
+            checkInDate: checkIn,
+            duration: duration
           }),
         });
 
         const notificationData = await notificationResponse.json();
         
         if (notificationData.success) {
-          // Open WhatsApp messages for both guest and owner
-          const guestWhatsappUrl = `https://wa.me/${whatsappNumber?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(notificationData.messages.guest)}`;
-          const ownerWhatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(notificationData.messages.owner)}`;
+          console.log('WhatsApp notifications sent successfully:', notificationData.results);
           
-          // Open owner WhatsApp in a new tab
-          window.open(ownerWhatsappUrl, '_blank');
+          // Show success message to user
+          if (notificationData.results.guestMessageSent) {
+            console.log('✅ Confirmation message sent to guest WhatsApp');
+          }
+          if (notificationData.results.ownerMessageSent) {
+            console.log('✅ Booking alert sent to property owner');
+          }
           
-          // Store guest message for later use
-          localStorage.setItem('guestMessage', notificationData.messages.guest);
-          localStorage.setItem('guestWhatsapp', guestWhatsappUrl);
+          // Store notification status for success page
+          localStorage.setItem('notificationsSent', JSON.stringify(notificationData.results));
+        } else {
+          console.warn('WhatsApp notifications failed:', notificationData.error);
         }
       } catch (notificationError) {
         console.warn('Notification sending failed:', notificationError);

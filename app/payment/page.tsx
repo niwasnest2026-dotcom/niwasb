@@ -422,8 +422,10 @@ export default function PaymentPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      readOnly
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                       placeholder="Enter your email"
+                      title="Email cannot be changed as you are logged in"
                     />
                   </div>
                   <div>

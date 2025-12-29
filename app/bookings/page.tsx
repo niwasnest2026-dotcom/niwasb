@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCalendarAlt, FaMapMarkerAlt, FaCreditCard, FaEye } from 'react-icons/fa';
+import { FaArrowLeft, FaCalendarAlt, FaMapMarkerAlt, FaEye } from 'react-icons/fa';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Booking } from '@/types/database';

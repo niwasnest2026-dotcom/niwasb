@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaCheckCircle, FaHome, FaReceipt, FaWhatsapp } from 'react-icons/fa';
+import { FaCheckCircle, FaHome, FaReceipt, FaWhatsapp, FaTimes } from 'react-icons/fa';
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
-  const [guestMessage, setGuestMessage] = useState<string>('');
-  const [guestWhatsappUrl, setGuestWhatsappUrl] = useState<string>('');
+  const [notificationStatus, setNotificationStatus] = useState<any>(null);
 
   const paymentId = searchParams.get('paymentId');
   const bookingId = searchParams.get('bookingId');
@@ -33,18 +32,11 @@ export default function PaymentSuccessPage() {
       guestName
     });
 
-    // Get stored messages from localStorage
-    const storedGuestMessage = localStorage.getItem('guestMessage');
-    const storedGuestWhatsapp = localStorage.getItem('guestWhatsapp');
-    
-    if (storedGuestMessage) {
-      setGuestMessage(storedGuestMessage);
-      localStorage.removeItem('guestMessage'); // Clean up
-    }
-    
-    if (storedGuestWhatsapp) {
-      setGuestWhatsappUrl(storedGuestWhatsapp);
-      localStorage.removeItem('guestWhatsapp'); // Clean up
+    // Get notification status from localStorage
+    const storedNotifications = localStorage.getItem('notificationsSent');
+    if (storedNotifications) {
+      setNotificationStatus(JSON.parse(storedNotifications));
+      localStorage.removeItem('notificationsSent'); // Clean up
     }
   }, [paymentId, bookingId, amount, propertyName, guestName, router]);
 
@@ -114,6 +106,46 @@ export default function PaymentSuccessPage() {
             </div>
           </div>
 
+          {/* Notification Status */}
+          {notificationStatus && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-bold text-green-800 mb-3">📱 WhatsApp Notifications</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  {notificationStatus.guestMessageSent ? (
+                    <FaCheckCircle className="text-green-600" />
+                  ) : (
+                    <FaTimes className="text-red-600" />
+                  )}
+                  <span className={`text-sm ${notificationStatus.guestMessageSent ? 'text-green-700' : 'text-red-700'}`}>
+                    {notificationStatus.guestMessageSent 
+                      ? '✅ Booking confirmation sent to your WhatsApp' 
+                      : '❌ Failed to send confirmation to your WhatsApp'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {notificationStatus.ownerMessageSent ? (
+                    <FaCheckCircle className="text-green-600" />
+                  ) : (
+                    <FaTimes className="text-red-600" />
+                  )}
+                  <span className={`text-sm ${notificationStatus.ownerMessageSent ? 'text-green-700' : 'text-red-700'}`}>
+                    {notificationStatus.ownerMessageSent 
+                      ? '✅ Booking alert sent to property owner' 
+                      : '❌ Failed to send alert to property owner'}
+                  </span>
+                </div>
+              </div>
+              {notificationStatus.errors && notificationStatus.errors.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <p className="text-xs text-red-600">
+                    Note: Some notifications may have failed. Our team will follow up manually.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Important Information */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6 text-left">
             <h3 className="text-lg font-bold text-blue-800 mb-3">Important Information</h3>
@@ -128,16 +160,48 @@ export default function PaymentSuccessPage() {
 
           {/* Action Buttons */}
           <div className="space-y-4">
-            {/* Send Guest Confirmation Message */}
-            {guestWhatsappUrl && (
+            {/* Manual WhatsApp buttons as backup */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
-                onClick={() => window.open(guestWhatsappUrl, '_blank')}
-                className="w-full flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all mb-4"
+                onClick={() => {
+                  const message = `🎉 My Booking Confirmed - Niwas Nest
+
+Property: ${bookingDetails.propertyName || 'N/A'}
+Booking ID: ${bookingDetails.bookingId}
+Payment ID: ${bookingDetails.paymentId}
+Amount Paid: ₹${bookingDetails.amount.toLocaleString()}
+
+Thank you for choosing Niwas Nest! 🏠`;
+                  
+                  const userWhatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                  window.open(userWhatsappUrl, '_blank');
+                }}
+                className="flex items-center justify-center px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl transition-all"
               >
                 <FaWhatsapp className="mr-2" />
-                Send Confirmation to Your WhatsApp
+                Send to My WhatsApp
               </button>
-            )}
+              
+              <button
+                onClick={() => {
+                  const message = `🔔 Booking Follow-up - ${bookingDetails.propertyName}
+
+Hi, I just completed my booking payment:
+Booking ID: ${bookingDetails.bookingId}
+Payment ID: ${bookingDetails.paymentId}
+Amount Paid: ₹${bookingDetails.amount.toLocaleString()}
+
+Please confirm my booking and provide next steps.`;
+                  
+                  const ownerWhatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(message)}`;
+                  window.open(ownerWhatsappUrl, '_blank');
+                }}
+                className="flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all"
+              >
+                <FaWhatsapp className="mr-2" />
+                Contact Property Owner
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link
@@ -156,18 +220,6 @@ export default function PaymentSuccessPage() {
                 My Bookings
               </Link>
             </div>
-            
-            <button
-              onClick={() => {
-                const message = `Hi! I have successfully made a booking payment.\n\nBooking Details:\nPayment ID: ${bookingDetails.paymentId}\nProperty: ${bookingDetails.propertyName || 'N/A'}\nAmount Paid: ₹${bookingDetails.amount.toLocaleString()}\n\nPlease confirm my booking and provide further details.`;
-                const whatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(message)}`;
-                window.open(whatsappUrl, '_blank');
-              }}
-              className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
-            >
-              <FaWhatsapp className="mr-2" />
-              Contact Property Owner
-            </button>
           </div>
 
           {/* Footer Note */}

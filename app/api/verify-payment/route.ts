@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       const bookingData: any = {
         property_id: booking_details.property_id,
         guest_name: booking_details.guest_name,
-        guest_email: user.email, // Use authenticated user's email
+        guest_email: booking_details.guest_email || user.email, // Use form email or fallback to user email
         guest_phone: booking_details.guest_phone,
         sharing_type: booking_details.sharing_type,
         price_per_person: booking_details.price_per_person,
