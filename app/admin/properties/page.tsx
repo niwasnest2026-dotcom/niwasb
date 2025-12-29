@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,21 +18,22 @@ export default function AdminProperties() {
 
   useEffect(() => {
     async function checkAdminAndFetch() {
+      if (authLoading) return; // Wait for auth to complete
+      
       if (!user) {
         router.push('/');
         return;
       }
 
       try {
+        // Check admin status with a simpler query
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
           .eq('id', user.id)
-          .maybeSingle();
+          .single();
 
-        if (error) throw error;
-
-        if (!data || !(data as any).is_admin) {
+        if (error || !(data as any)?.is_admin) {
           router.push('/');
           return;
         }
@@ -47,39 +48,38 @@ export default function AdminProperties() {
       }
     }
 
-    if (!authLoading) {
-      checkAdminAndFetch();
-    }
-  }, [user, authLoading, router]);
+    checkAdminAndFetch();
+  }, [user, authLoading, router]); // Simplified dependencies
 
-  async function fetchProperties() {
+  const fetchProperties = useCallback(async () => {
     try {
+      // Optimize query - only fetch essential data first
       const { data, error } = await supabase
         .from('properties')
         .select(`
-          *,
-          amenities:property_amenities(
-            amenity:amenities(*)
-          ),
-          images:property_images(*)
+          id,
+          name,
+          city,
+          area,
+          price,
+          security_deposit,
+          property_type,
+          available_months,
+          featured_image,
+          created_at
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to 50 properties for better performance
 
       if (error) throw error;
 
-      const formattedProperties = data?.map((property: any) => ({
-        ...property,
-        amenities: property.amenities?.map((pa: any) => pa.amenity).filter(Boolean) || [],
-        images: property.images || [],
-      })) || [];
-
-      setProperties(formattedProperties);
+      setProperties(data || []);
     } catch (error) {
       console.error('Error fetching properties:', error);
     }
-  }
+  }, []);
 
-  async function handleDelete(propertyId: string) {
+  const handleDelete = useCallback(async (propertyId: string) => {
     if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
       return;
     }
@@ -94,7 +94,7 @@ export default function AdminProperties() {
 
       if (error) throw error;
 
-      setProperties(properties.filter(p => p.id !== propertyId));
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
       alert('Property deleted successfully!');
     } catch (error) {
       console.error('Error deleting property:', error);
@@ -102,18 +102,33 @@ export default function AdminProperties() {
     } finally {
       setDeleteLoading(null);
     }
-  }
+  }, []);
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ 
+        background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)'
+      }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading properties...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return null;
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ 
+        background: 'linear-gradient(135deg, #DEF2F1 0%, #FEFFFF 50%, #DEF2F1 100%)'
+      }}>
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
+          <Link href="/" className="text-blue-600 hover:underline">Go to Home</Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -191,6 +206,9 @@ export default function AdminProperties() {
                                 src={property.featured_image}
                                 alt={property.name}
                                 fill
+                                sizes="40px"
+                                priority={false}
+                                loading="lazy"
                               />
                             ) : (
                               <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center">
@@ -267,6 +285,9 @@ export default function AdminProperties() {
                           src={property.featured_image}
                           alt={property.name}
                           fill
+                          sizes="64px"
+                          priority={false}
+                          loading="lazy"
                         />
                       ) : (
                         <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-2xl">

@@ -8,7 +8,8 @@ import {
   FaStar, FaMapMarkerAlt, FaArrowLeft, FaPhone, FaEnvelope, FaTimes,
   FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, FaCouch,
   FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, 
-  FaClock, FaCalendarAlt, FaSearch, FaVideo, FaTint, FaFingerprint
+  FaClock, FaCalendarAlt, FaSearch, FaVideo, FaTint, FaFingerprint,
+  FaUser, FaUserTie, FaHome
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import { supabase } from '@/lib/supabase';
@@ -643,6 +644,163 @@ export default function PropertyDetails() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* WhatsApp Inquiry Section */}
+            <div className="border-t pt-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Get Details & Inquire</h2>
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Interested in this property? Get instant details!
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    Send inquiry messages to get more information, schedule visits, and clarify doubts
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Send to User (Guest) */}
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaUser className="text-blue-600 text-xl" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Send to Yourself</h4>
+                    <p className="text-xs text-gray-600 mb-3">Get property details on your WhatsApp</p>
+                    <button
+                      onClick={() => {
+                        const message = `🏠 Property Details - ${property.name}
+
+📍 Location: ${property.area && property.city ? `${property.area}, ${property.city}` : property.city || property.area}
+
+💰 Pricing:
+${(property as any).rooms && (property as any).rooms.length > 0 
+  ? `Starting from ₹${Math.min(...(property as any).rooms.map((room: any) => room.price_per_person)).toLocaleString()}/person per month`
+  : `₹${property.price.toLocaleString()}/month`}
+
+🏷️ Property Type: ${property.property_type}
+${(property as any).gender_preference ? `👥 Gender Preference: ${(property as any).gender_preference}` : ''}
+
+📋 Description:
+${property.description || 'Contact for more details'}
+
+🔗 View Full Details: ${window.location.href}
+
+📞 Contact Niwas Nest: ${settings.contact_phone}
+
+Interested? Reply to this message or call us directly!`;
+
+                        // Open user's own WhatsApp (they need to enter their number)
+                        const userWhatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                        window.open(userWhatsappUrl, '_blank');
+                      }}
+                      className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all"
+                    >
+                      📱 Send to My WhatsApp
+                    </button>
+                  </div>
+
+                  {/* Send to Admin */}
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaUserTie className="text-orange-600 text-xl" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Contact Admin</h4>
+                    <p className="text-xs text-gray-600 mb-3">Direct inquiry to Niwas Nest team</p>
+                    <button
+                      onClick={() => {
+                        const message = `🏠 Property Inquiry - ${property.name}
+
+Hi Niwas Nest Team,
+
+I'm interested in this property:
+📍 ${property.area && property.city ? `${property.area}, ${property.city}` : property.city || property.area}
+
+💰 Price: ${(property as any).rooms && (property as any).rooms.length > 0 
+  ? `Starting from ₹${Math.min(...(property as any).rooms.map((room: any) => room.price_per_person)).toLocaleString()}/person`
+  : `₹${property.price.toLocaleString()}/month`}
+
+🔗 Property Link: ${window.location.href}
+
+Please provide more details about:
+• Availability and booking process
+• Security deposit and payment terms
+• Property rules and facilities
+• Visit scheduling
+
+Looking forward to your response!`;
+
+                        const adminWhatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(message)}`;
+                        window.open(adminWhatsappUrl, '_blank');
+                      }}
+                      className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all"
+                    >
+                      💬 Message Admin
+                    </button>
+                  </div>
+
+                  {/* Send to Property Owner */}
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaHome className="text-green-600 text-xl" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Contact Owner</h4>
+                    <p className="text-xs text-gray-600 mb-3">Direct contact with property owner</p>
+                    <button
+                      onClick={() => {
+                        const message = `🏠 Property Inquiry - ${property.name}
+
+Hello,
+
+I found your property on Niwas Nest and I'm interested in:
+
+📍 Location: ${property.area && property.city ? `${property.area}, ${property.city}` : property.city || property.area}
+🏷️ Type: ${property.property_type}
+💰 Price: ${(property as any).rooms && (property as any).rooms.length > 0 
+  ? `Starting from ₹${Math.min(...(property as any).rooms.map((room: any) => room.price_per_person)).toLocaleString()}/person per month`
+  : `₹${property.price.toLocaleString()}/month`}
+
+Could you please provide more information about:
+• Current availability
+• Immediate move-in possibility
+• Property visit scheduling
+• Any additional charges
+• House rules and facilities
+
+🔗 Property Details: ${window.location.href}
+
+Thank you for your time. Looking forward to hearing from you!`;
+
+                        // For now, redirect to admin WhatsApp since we don't have individual owner contacts
+                        // In a real implementation, you would have owner contact info in the database
+                        const ownerWhatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(message)}`;
+                        window.open(ownerWhatsappUrl, '_blank');
+                      }}
+                      className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-all"
+                    >
+                      🏠 Message Owner
+                    </button>
+                  </div>
+                </div>
+
+                {/* Additional Contact Options */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <FaClock className="text-green-500" />
+                      <span>Quick response within 30 minutes</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <FaShieldAlt className="text-blue-500" />
+                      <span>Verified properties only</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <FaVideo className="text-orange-500" />
+                      <span>Virtual tours available</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
