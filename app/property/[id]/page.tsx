@@ -51,10 +51,13 @@ export default function PropertyDetails() {
     contact_email: 'niwasnest2026@gmail.com'
   });
 
-  // Get search parameters
+  // Get search parameters - both new and legacy
   const duration = searchParams.get('duration') || '';
   const checkIn = searchParams.get('checkIn') || '';
   const checkOut = searchParams.get('checkOut') || '';
+  const location = searchParams.get('location') || '';
+  const gender = searchParams.get('gender') || '';
+  const moveIn = searchParams.get('moveIn') || '';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -170,13 +173,40 @@ export default function PropertyDetails() {
         </Link>
 
         {/* Search Criteria Display */}
-        {(duration || (checkIn && checkOut)) && (
+        {(duration || (checkIn && checkOut) || location || (gender && gender !== 'any') || moveIn) && (
           <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: 'rgba(247, 250, 252, 0.8)' }}>
             <div className="flex items-center flex-wrap gap-4">
               <div className="flex items-center space-x-2">
                 <FaSearch style={{ color: '#FF6711' }} />
                 <span className="text-sm font-semibold" style={{ color: '#2D3748' }}>Your Search:</span>
               </div>
+              
+              {location && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
+                  <FaMapMarkerAlt style={{ color: '#FF6711' }} />
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
+                    {location}
+                  </span>
+                </div>
+              )}
+              
+              {gender && gender !== 'any' && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
+                  <FaUser style={{ color: '#63B3ED' }} />
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
+                    {gender === 'boys' ? 'Boys Only' : gender === 'girls' ? 'Girls Only' : gender}
+                  </span>
+                </div>
+              )}
+              
+              {moveIn && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 208, 130, 0.1)' }}>
+                  <FaCalendarAlt style={{ color: '#FFD082' }} />
+                  <span className="text-sm font-medium" style={{ color: '#2D3748' }}>
+                    Moving: {formatDate(moveIn)}
+                  </span>
+                </div>
+              )}
               
               {duration && (
                 <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
