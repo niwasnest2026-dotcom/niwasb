@@ -34,7 +34,8 @@ export default function PaymentPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    phone: ''
+    phone: '',
+    whatsappNumber: ''
   });
 
   // Get search parameters for duration and dates
@@ -220,7 +221,7 @@ export default function PaymentPage() {
     }
 
     // Validate form data
-    if (!formData.fullName || !formData.email || !formData.phone) {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.whatsappNumber) {
       alert('Please fill in all required fields');
       return;
     }
@@ -231,6 +232,7 @@ export default function PaymentPage() {
       fullName: formData.fullName,
       email: formData.email,
       phone: formData.phone,
+      whatsappNumber: formData.whatsappNumber,
     });
 
     // Add room/sharing type parameters
@@ -437,6 +439,23 @@ export default function PaymentPage() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Enter your phone number"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      WhatsApp Number *
+                    </label>
+                    <input
+                      type="tel"
+                      name="whatsappNumber"
+                      value={formData.whatsappNumber}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Enter your WhatsApp number"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Property owner will contact you on this number
+                    </p>
                   </div>
                 </div>
 

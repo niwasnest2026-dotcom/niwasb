@@ -9,6 +9,8 @@ export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [guestMessage, setGuestMessage] = useState<string>('');
+  const [guestWhatsappUrl, setGuestWhatsappUrl] = useState<string>('');
 
   const paymentId = searchParams.get('paymentId');
   const bookingId = searchParams.get('bookingId');
@@ -30,6 +32,20 @@ export default function PaymentSuccessPage() {
       propertyName,
       guestName
     });
+
+    // Get stored messages from localStorage
+    const storedGuestMessage = localStorage.getItem('guestMessage');
+    const storedGuestWhatsapp = localStorage.getItem('guestWhatsapp');
+    
+    if (storedGuestMessage) {
+      setGuestMessage(storedGuestMessage);
+      localStorage.removeItem('guestMessage'); // Clean up
+    }
+    
+    if (storedGuestWhatsapp) {
+      setGuestWhatsappUrl(storedGuestWhatsapp);
+      localStorage.removeItem('guestWhatsapp'); // Clean up
+    }
   }, [paymentId, bookingId, amount, propertyName, guestName, router]);
 
   if (!bookingDetails) {
@@ -112,6 +128,17 @@ export default function PaymentSuccessPage() {
 
           {/* Action Buttons */}
           <div className="space-y-4">
+            {/* Send Guest Confirmation Message */}
+            {guestWhatsappUrl && (
+              <button
+                onClick={() => window.open(guestWhatsappUrl, '_blank')}
+                className="w-full flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all mb-4"
+              >
+                <FaWhatsapp className="mr-2" />
+                Send Confirmation to Your WhatsApp
+              </button>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link
                 href="/"
@@ -136,7 +163,7 @@ export default function PaymentSuccessPage() {
                 const whatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
               }}
-              className="w-full flex items-center justify-center px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all"
+              className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all"
             >
               <FaWhatsapp className="mr-2" />
               Contact Property Owner

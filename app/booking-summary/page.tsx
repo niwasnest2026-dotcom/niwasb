@@ -30,6 +30,7 @@ export default function BookingSummaryPage() {
   const fullName = searchParams.get('fullName');
   const email = searchParams.get('email');
   const phone = searchParams.get('phone');
+  const whatsappNumber = searchParams.get('whatsappNumber');
   
   const [property, setProperty] = useState<Property | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -66,8 +67,8 @@ export default function BookingSummaryPage() {
   }, [user, authLoading]);
 
   useEffect(() => {
-    if (!propertyId || !fullName || !email || !phone || authLoading) {
-      if (!authLoading && (!propertyId || !fullName || !email || !phone)) {
+    if (!propertyId || !fullName || !email || !phone || !whatsappNumber || authLoading) {
+      if (!authLoading && (!propertyId || !fullName || !email || !phone || !whatsappNumber)) {
         router.push('/');
       }
       return;
@@ -140,7 +141,7 @@ export default function BookingSummaryPage() {
     }
 
     fetchProperty();
-  }, [propertyId, roomId, sharingType, propertyType, fullName, email, phone, router, user, authLoading]);
+  }, [propertyId, roomId, sharingType, propertyType, fullName, email, phone, whatsappNumber, router, user, authLoading]);
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -235,6 +236,7 @@ export default function BookingSummaryPage() {
         guest_name: fullName,
         guest_email: email,
         guest_phone: phone,
+        guest_whatsapp: whatsappNumber,
         sharing_type: selectedRoom.sharing_type,
         price_per_person: selectedRoom.price_per_person,
         security_deposit_per_person: securityDeposit,
@@ -288,6 +290,42 @@ export default function BookingSummaryPage() {
         }
       } catch (dbError) {
         console.warn('Database error, but payment was successful:', dbError);
+      }
+
+      // Send WhatsApp notifications
+      try {
+        const notificationResponse = await fetch('/api/send-booking-notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            guestName: fullName,
+            guestWhatsapp: whatsappNumber,
+            propertyName: property!.name,
+            paymentId,
+            bookingId,
+            amountPaid,
+            amountDue
+          }),
+        });
+
+        const notificationData = await notificationResponse.json();
+        
+        if (notificationData.success) {
+          // Open WhatsApp messages for both guest and owner
+          const guestWhatsappUrl = `https://wa.me/${whatsappNumber?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(notificationData.messages.guest)}`;
+          const ownerWhatsappUrl = `https://wa.me/916304809598?text=${encodeURIComponent(notificationData.messages.owner)}`;
+          
+          // Open owner WhatsApp in a new tab
+          window.open(ownerWhatsappUrl, '_blank');
+          
+          // Store guest message for later use
+          localStorage.setItem('guestMessage', notificationData.messages.guest);
+          localStorage.setItem('guestWhatsapp', guestWhatsappUrl);
+        }
+      } catch (notificationError) {
+        console.warn('Notification sending failed:', notificationError);
       }
 
       // Redirect to success page with booking details
@@ -445,7 +483,7 @@ export default function BookingSummaryPage() {
           {/* Guest Details */}
           <div className="border rounded-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Guest Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600">Full Name</p>
                 <p className="font-semibold text-gray-900">{fullName}</p>
@@ -457,6 +495,10 @@ export default function BookingSummaryPage() {
               <div>
                 <p className="text-sm text-gray-600">Phone</p>
                 <p className="font-semibold text-gray-900">{phone}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">WhatsApp</p>
+                <p className="font-semibold text-gray-900">{whatsappNumber}</p>
               </div>
             </div>
           </div>
