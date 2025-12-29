@@ -12,7 +12,7 @@ const nextConfig = {
   },
   // Performance optimizations
   experimental: {
-    optimizeCss: true,
+    // Removed optimizeCss as it's causing build issues
     optimizePackageImports: ['react-icons'],
   },
   // Compiler optimizations

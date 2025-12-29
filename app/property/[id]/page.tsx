@@ -511,68 +511,211 @@ export default function PropertyDetails() {
             {property.property_type !== 'Room' && (property as any).rooms && (property as any).rooms.length > 0 && (
               <div id="room-selection" className="mb-8">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Room Type</h2>
-                  <p className="text-gray-600">Select a room below to book</p>
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Choose Your Room</h2>
+                  <p className="text-gray-600 text-sm md:text-base">Select a room type and see real-time availability</p>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Get unique sharing types with their lowest price */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                  {/* Get unique sharing types with their details */}
                   {(Array.from(new Set((property as any).rooms.map((room: any) => room.sharing_type))) as string[])
                     .map((sharingType: string) => {
                       const roomsOfType = (property as any).rooms.filter((room: any) => room.sharing_type === sharingType);
                       const lowestPrice = Math.min(...roomsOfType.map((room: any) => room.price_per_person));
+                      const highestPrice = Math.max(...roomsOfType.map((room: any) => room.price_per_person));
                       const availableRooms = roomsOfType.filter((room: any) => room.available_beds > 0);
                       const totalAvailableBeds = roomsOfType.reduce((sum: number, room: any) => sum + (room.available_beds || 0), 0);
+                      const totalBeds = roomsOfType.reduce((sum: number, room: any) => sum + (room.total_beds || 0), 0);
+                      const occupancyRate = totalBeds > 0 ? Math.round(((totalBeds - totalAvailableBeds) / totalBeds) * 100) : 0;
                       
+                      // Get sharing type icon
+                      const getSharingIcon = (type: string) => {
+                        if (type.toLowerCase().includes('single') || type.toLowerCase().includes('1')) return '🛏️';
+                        if (type.toLowerCase().includes('2') || type.toLowerCase().includes('double')) return '🛏️🛏️';
+                        if (type.toLowerCase().includes('3') || type.toLowerCase().includes('triple')) return '🛏️🛏️🛏️';
+                        if (type.toLowerCase().includes('4') || type.toLowerCase().includes('quad')) return '🛏️🛏️🛏️🛏️';
+                        return '🏠';
+                      };
+
                       return (
                         <div
                           key={sharingType}
-                          className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow"
+                          className={`relative bg-white border-2 rounded-2xl p-4 md:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                            totalAvailableBeds > 0 
+                              ? 'border-gray-200 hover:border-orange-300' 
+                              : 'border-red-200 bg-gray-50'
+                          }`}
                         >
-                          <div className="text-center">
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">{sharingType}</h3>
-                            <div className="text-2xl font-bold mb-1" style={{ color: '#FF6711' }}>
-                              ₹{lowestPrice.toLocaleString()}
-                            </div>
-                            <div className="text-sm text-gray-600 mb-4">per person/month</div>
-                            
+                          {/* Availability Badge */}
+                          <div className="absolute -top-2 -right-2">
                             {totalAvailableBeds > 0 ? (
-                              <div className="mb-4 space-y-1">
-                                <div className="text-sm font-medium" style={{ color: '#63B3ED' }}>
-                                  {availableRooms.length} room{availableRooms.length > 1 ? 's' : ''} available
-                                </div>
-                                <div className="text-xs font-medium" style={{ color: '#FF6711' }}>
-                                  {totalAvailableBeds} bed{totalAvailableBeds > 1 ? 's' : ''} free
-                                </div>
+                              <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                                {totalAvailableBeds} Available
                               </div>
                             ) : (
-                              <div className="mb-4">
-                                <span className="text-sm text-red-600 font-medium">No beds available</span>
+                              <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                                Full
                               </div>
-                            )}
-
-                            {totalAvailableBeds > 0 ? (
-                              <Link
-                                href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
-                                className="block w-full px-4 py-2 text-white font-semibold rounded-lg transition-all"
-                                style={{ backgroundColor: '#FF6711' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
-                              >
-                                Book Now
-                              </Link>
-                            ) : (
-                              <button
-                                disabled
-                                className="block w-full px-4 py-2 bg-gray-300 text-gray-600 font-semibold rounded-lg cursor-not-allowed"
-                              >
-                                Fully Booked
-                              </button>
                             )}
                           </div>
+
+                          {/* Room Type Header */}
+                          <div className="text-center mb-4">
+                            <div className="text-3xl mb-2">{getSharingIcon(sharingType)}</div>
+                            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{sharingType}</h3>
+                            <div className="text-xs text-gray-500">
+                              {roomsOfType.length} room{roomsOfType.length > 1 ? 's' : ''} of this type
+                            </div>
+                          </div>
+
+                          {/* Price Display */}
+                          <div className="text-center mb-4">
+                            {lowestPrice === highestPrice ? (
+                              <div className="text-2xl md:text-3xl font-bold mb-1" style={{ color: '#FF6711' }}>
+                                ₹{lowestPrice.toLocaleString()}
+                              </div>
+                            ) : (
+                              <div className="text-xl md:text-2xl font-bold mb-1" style={{ color: '#FF6711' }}>
+                                ₹{lowestPrice.toLocaleString()} - ₹{highestPrice.toLocaleString()}
+                              </div>
+                            )}
+                            <div className="text-sm text-gray-600">per person/month</div>
+                          </div>
+
+                          {/* Availability Details */}
+                          <div className="mb-4 space-y-2">
+                            {totalAvailableBeds > 0 ? (
+                              <>
+                                {/* Available Beds */}
+                                <div className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span className="text-sm font-medium text-green-800">Available Beds</span>
+                                  </div>
+                                  <span className="text-sm font-bold text-green-800">{totalAvailableBeds}</span>
+                                </div>
+
+                                {/* Available Rooms */}
+                                <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    <span className="text-sm font-medium text-blue-800">Available Rooms</span>
+                                  </div>
+                                  <span className="text-sm font-bold text-blue-800">{availableRooms.length}</span>
+                                </div>
+
+                                {/* Occupancy Rate */}
+                                <div className="p-2 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs text-gray-600">Occupancy</span>
+                                    <span className="text-xs font-medium text-gray-800">{occupancyRate}%</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full transition-all duration-500"
+                                      style={{ width: `${occupancyRate}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="p-3 bg-red-50 rounded-lg text-center">
+                                <div className="text-red-600 font-medium text-sm mb-1">Fully Occupied</div>
+                                <div className="text-red-500 text-xs">All {totalBeds} beds are taken</div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Room Details */}
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Total Beds:</span>
+                                <span className="font-medium">{totalBeds}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Total Rooms:</span>
+                                <span className="font-medium">{roomsOfType.length}</span>
+                              </div>
+                              {roomsOfType[0]?.security_deposit_per_person && (
+                                <div className="flex justify-between col-span-2 pt-1 border-t border-gray-200">
+                                  <span className="text-gray-600">Security Deposit:</span>
+                                  <span className="font-medium">₹{roomsOfType[0].security_deposit_per_person.toLocaleString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          {totalAvailableBeds > 0 ? (
+                            <Link
+                              href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(sharingType)}${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}`}
+                              className="block w-full px-4 py-3 text-white font-bold text-center rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                              style={{ backgroundColor: '#FF6711' }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <span>Book Now</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </Link>
+                          ) : (
+                            <button
+                              disabled
+                              className="block w-full px-4 py-3 bg-gray-300 text-gray-600 font-bold rounded-xl cursor-not-allowed"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                <span>Fully Booked</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </div>
+                            </button>
+                          )}
+
+                          {/* Quick Info */}
+                          {totalAvailableBeds > 0 && (
+                            <div className="mt-3 text-center">
+                              <div className="text-xs text-gray-500">
+                                🚀 Instant booking • 💰 20% advance only
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+                </div>
+
+                {/* Summary Stats */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-orange-50 rounded-xl">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {(property as any).rooms.reduce((sum: number, room: any) => sum + (room.available_beds || 0), 0)}
+                      </div>
+                      <div className="text-xs text-gray-600">Total Available Beds</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-600">
+                        {(property as any).rooms.filter((room: any) => room.available_beds > 0).length}
+                      </div>
+                      <div className="text-xs text-gray-600">Available Rooms</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">
+                        ₹{Math.min(...(property as any).rooms.map((room: any) => room.price_per_person)).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-600">Starting Price</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-purple-600">
+                        {Array.from(new Set((property as any).rooms.map((room: any) => room.sharing_type))).length}
+                      </div>
+                      <div className="text-xs text-gray-600">Room Types</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

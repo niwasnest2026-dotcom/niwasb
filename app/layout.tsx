@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.niwasnest.com'),
   title: 'Niwas Nest - Find Your Perfect PG & Hostel',
   description: 'Discover safe, affordable PGs, hostels, and coliving spaces across India with zero brokerage',
   openGraph: {
