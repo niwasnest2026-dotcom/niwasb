@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Script from 'next/script';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface RazorpayPaymentProps {
   amount: number;
@@ -34,6 +36,7 @@ export default function RazorpayPayment({
 }: RazorpayPaymentProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const { user } = useAuth();
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -41,14 +44,28 @@ export default function RazorpayPayment({
       return;
     }
 
+    if (!user) {
+      onError('You must be logged in to make a payment.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create order
+      // Get the current session to include in API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        onError('Authentication session expired. Please login again.');
+        return;
+      }
+
+      // Create order with authentication
       const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           amount,
@@ -91,11 +108,12 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
-            // Verify payment
+            // Verify payment with authentication
             const verifyResponse = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
               },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,

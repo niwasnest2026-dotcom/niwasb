@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaCheckCircle, FaLock } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import RazorpayPayment from '@/components/RazorpayPayment';
 
 interface Property {
@@ -21,6 +22,7 @@ interface Property {
 export default function BookingSummaryPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const propertyId = searchParams.get('propertyId');
   const roomId = searchParams.get('roomId');
   const sharingType = searchParams.get('sharingType');
@@ -50,9 +52,24 @@ export default function BookingSummaryPage() {
     });
   };
 
+  // Check authentication
   useEffect(() => {
-    if (!propertyId || !fullName || !email || !phone) {
-      router.push('/');
+    if (!authLoading && !user) {
+      // Store the current URL to redirect back after login
+      const currentUrl = window.location.href;
+      localStorage.setItem('redirectAfterLogin', currentUrl);
+      
+      // Redirect to login page
+      window.location.href = '/auth/login';
+      return;
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!propertyId || !fullName || !email || !phone || authLoading) {
+      if (!authLoading && (!propertyId || !fullName || !email || !phone)) {
+        router.push('/');
+      }
       return;
     }
 
@@ -123,7 +140,59 @@ export default function BookingSummaryPage() {
     }
 
     fetchProperty();
-  }, [propertyId, roomId, sharingType, propertyType, fullName, email, phone, router]);
+  }, [propertyId, roomId, sharingType, propertyType, fullName, email, phone, router, user, authLoading]);
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login required message if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <FaLock className="text-6xl text-orange-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h1>
+            <p className="text-gray-600">
+              You need to be logged in to complete your booking and payment.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <button
+              onClick={() => {
+                const currentUrl = window.location.href;
+                localStorage.setItem('redirectAfterLogin', currentUrl);
+                window.location.href = '/auth/login';
+              }}
+              className="w-full px-6 py-3 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: '#FF6711' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
+            >
+              Login to Continue
+            </button>
+            
+            <Link
+              href="/"
+              className="block w-full px-6 py-3 text-gray-600 font-medium text-lg rounded-xl border border-gray-300 hover:bg-gray-50 transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleConfirmBooking = () => {
     if (!selectedRoom || !property) {
@@ -160,8 +229,8 @@ export default function BookingSummaryPage() {
       const amountPaid = Math.round(selectedRoom.price_per_person * 0.2); // 20% of one month rent only
       const amountDue = totalAmount - amountPaid; // Remaining amount
 
-      // Create the booking record
-      const bookingData = {
+      // Create the booking record with only essential fields first
+      const bookingData: any = {
         property_id: property!.id,
         guest_name: fullName,
         guest_email: email,
@@ -177,43 +246,73 @@ export default function BookingSummaryPage() {
         booking_status: 'confirmed',
         payment_reference: paymentId,
         payment_date: new Date().toISOString(),
-        duration_months: duration ? parseInt(duration) : null,
-        check_in_date: checkIn || null,
-        check_out_date: checkOut || null,
         notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
       };
 
+      // Add optional fields only if they exist
+      if (duration) {
+        bookingData.duration_months = parseInt(duration);
+      }
+      
+      if (checkIn) {
+        bookingData.check_in_date = checkIn;
+      }
+      
+      if (checkOut) {
+        bookingData.check_out_date = checkOut;
+      }
+
       // Only add room_id if it's not a mock room for Room type properties
       if (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
-        (bookingData as any).room_id = selectedRoom.id;
+        bookingData.room_id = selectedRoom.id;
       }
 
-      const { data: bookingResult, error: bookingError } = await supabase
-        .from('bookings')
-        .insert(bookingData as any)
-        .select()
-        .single();
-
-      if (bookingError) {
-        throw bookingError;
+      // Add user_id if user is available
+      if (user) {
+        bookingData.user_id = user.id;
       }
 
-      // Show success message and redirect
-      alert(`🎉 Booking Confirmed! 
-      
-Booking ID: ${(bookingResult as any)?.id || 'Generated'}
-Payment ID: ${paymentId}
-Amount Paid: ₹${amountPaid.toLocaleString()}
-Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
+      let bookingId = 'TEMP_' + Date.now();
 
-You will receive a confirmation email shortly.`);
+      try {
+        const { data: bookingResult, error: bookingError } = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select()
+          .single();
 
-      // Redirect to home page
-      router.push('/');
+        if (!bookingError && bookingResult) {
+          bookingId = (bookingResult as any).id;
+        } else {
+          console.warn('Booking creation failed, but payment was successful:', bookingError);
+        }
+      } catch (dbError) {
+        console.warn('Database error, but payment was successful:', dbError);
+      }
+
+      // Redirect to success page with booking details
+      const successParams = new URLSearchParams({
+        paymentId,
+        bookingId,
+        amount: amountPaid.toString(),
+        propertyName: property!.name,
+        guestName: fullName!
+      });
+
+      router.push(`/payment-success?${successParams.toString()}`);
 
     } catch (error: any) {
-      console.error('Booking creation error:', error);
-      alert('Booking creation failed: ' + (error.message || 'Unknown error'));
+      console.error('Payment success handling error:', error);
+      // Even if there's an error, redirect to success page since payment was successful
+      const successParams = new URLSearchParams({
+        paymentId,
+        bookingId: 'TEMP_' + Date.now(),
+        amount: Math.round(selectedRoom.price_per_person * 0.2).toString(),
+        propertyName: property!.name,
+        guestName: fullName!
+      });
+
+      router.push(`/payment-success?${successParams.toString()}`);
     }
   };
 

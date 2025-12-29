@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaCheckCircle, FaLock } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Property {
   id: string;
@@ -20,6 +21,7 @@ interface Property {
 export default function PaymentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const propertyId = searchParams.get('propertyId');
   const roomId = searchParams.get('roomId');
   const sharingType = searchParams.get('sharingType');
@@ -51,10 +53,34 @@ export default function PaymentPage() {
     });
   };
 
+  // Check authentication
   useEffect(() => {
-    if (!propertyId) {
-      router.push('/');
+    if (!authLoading && !user) {
+      // Store the current URL to redirect back after login
+      const currentUrl = window.location.href;
+      localStorage.setItem('redirectAfterLogin', currentUrl);
+      
+      // Redirect to login page (you can customize this URL)
+      window.location.href = '/auth/login';
       return;
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!propertyId || authLoading) {
+      if (!authLoading && !propertyId) {
+        router.push('/');
+      }
+      return;
+    }
+
+    // Pre-fill form with user data if available
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        email: user.email || '',
+      }));
     }
 
     async function fetchProperty() {
@@ -126,7 +152,59 @@ export default function PaymentPage() {
     }
 
     fetchProperty();
-  }, [propertyId, roomId, sharingType, propertyType, router]);
+  }, [propertyId, roomId, sharingType, propertyType, router, user, authLoading]);
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login required message if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <FaLock className="text-6xl text-orange-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h1>
+            <p className="text-gray-600">
+              You need to be logged in to make a booking and payment.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <button
+              onClick={() => {
+                const currentUrl = window.location.href;
+                localStorage.setItem('redirectAfterLogin', currentUrl);
+                window.location.href = '/auth/login';
+              }}
+              className="w-full px-6 py-3 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: '#FF6711' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E55A0F'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF6711'}
+            >
+              Login to Continue
+            </button>
+            
+            <Link
+              href="/"
+              className="block w-full px-6 py-3 text-gray-600 font-medium text-lg rounded-xl border border-gray-300 hover:bg-gray-50 transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
