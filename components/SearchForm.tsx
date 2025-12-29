@@ -39,7 +39,7 @@ export default function SearchForm() {
     if (!city.trim()) return popularCities.slice(0, 4);
     return popularCities.filter(cityName => 
       cityName.toLowerCase().includes(city.toLowerCase())
-    ).slice(0, 4);
+    ).slice(0, 6); // Show more cities when searching
   }, [city]);
 
   // Calculate check-out date when check-in date or duration changes
@@ -146,19 +146,40 @@ export default function SearchForm() {
             {showSuggestions && (
               <div 
                 ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 max-h-60 overflow-y-auto"
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                  border: '1px solid #e5e7eb'
+                }}
               >
-                {filteredCities.map((cityName) => (
-                  <button
-                    key={cityName}
-                    type="button"
-                    onClick={() => handleCitySelect(cityName)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
-                  >
-                    <FaMapMarkerAlt className="text-gray-400" />
-                    <span className="font-medium">{cityName}</span>
-                  </button>
-                ))}
+                {filteredCities.length > 0 ? (
+                  filteredCities.map((cityName) => (
+                    <button
+                      key={cityName}
+                      type="button"
+                      onClick={() => handleCitySelect(cityName)}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
+                      style={{ 
+                        color: '#1f2937',
+                        backgroundColor: 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <FaMapMarkerAlt className="text-gray-400 flex-shrink-0" style={{ color: '#9ca3af' }} />
+                      <span className="font-medium" style={{ color: '#111827' }}>{cityName}</span>
+                    </button>
+                  ))
+                ) : city.trim() ? (
+                  <div className="px-4 py-3 text-gray-500 text-sm" style={{ color: '#6b7280' }}>
+                    No cities found. Try searching for major cities like Bangalore, Mumbai, Delhi.
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
