@@ -1,26 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  FaMapMarkerAlt, FaSearch, FaBuilding, FaLocationArrow, 
-  FaSpinner, FaHistory, FaCalendarAlt, FaClock 
+  FaMapMarkerAlt, FaSearch, FaCalendarAlt, FaClock 
 } from 'react-icons/fa';
-import { supabase } from '@/lib/supabase';
-
-interface Property {
-  id: string;
-  name: string;
-  city: string;
-  area: string;
-  address: string;
-  price: number;
-  property_type: string;
-}
 
 const popularCities = [
-  'Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai', 
-  'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur'
+  'Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Hyderabad', 'Chennai'
 ];
 
 const durationOptions = [
@@ -40,51 +27,41 @@ export default function SearchForm() {
   const router = useRouter();
   const [city, setCity] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  
-  // New state for duration and dates
-  const [duration, setDuration] = useState<number>(6); // Default 6 months
+  const [duration, setDuration] = useState<number>(6);
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   
   const cityInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // Memoized filtered cities for better performance
+  const filteredCities = useMemo(() => {
+    if (!city.trim()) return popularCities.slice(0, 4);
+    return popularCities.filter(cityName => 
+      cityName.toLowerCase().includes(city.toLowerCase())
+    ).slice(0, 4);
+  }, [city]);
+
   // Calculate check-out date when check-in date or duration changes
-  useEffect(() => {
-    if (checkInDate && duration) {
-      const checkIn = new Date(checkInDate);
-      const checkOut = new Date(checkIn);
-      checkOut.setMonth(checkOut.getMonth() + duration);
-      setCheckOutDate(checkOut.toISOString().split('T')[0]);
+  const calculateCheckOutDate = useCallback((checkIn: string, months: number) => {
+    if (checkIn && months) {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkInDate);
+      checkOutDate.setMonth(checkOutDate.getMonth() + months);
+      return checkOutDate.toISOString().split('T')[0];
     }
-  }, [checkInDate, duration]);
+    return '';
+  }, []);
+
+  useEffect(() => {
+    const checkOut = calculateCheckOutDate(checkInDate, duration);
+    setCheckOutDate(checkOut);
+  }, [checkInDate, duration, calculateCheckOutDate]);
 
   // Set default check-in date to today
   useEffect(() => {
     const today = new Date();
     setCheckInDate(today.toISOString().split('T')[0]);
-  }, []);
-
-  // Load recent searches from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('recentCitySearches');
-    if (saved) {
-      setRecentSearches(JSON.parse(saved));
-    }
-  }, []);
-
-  // Check geolocation permission
-  useEffect(() => {
-    if ('geolocation' in navigator && 'permissions' in navigator) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
-      });
-    }
   }, []);
 
   // Close suggestions when clicking outside
@@ -103,393 +80,97 @@ export default function SearchForm() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredCities = popularCities.filter(cityName =>
-    cityName.toLowerCase().includes(city.toLowerCase())
-  );
-
-  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCity(value);
-    
-    if (value.trim().length >= 2) {
-      fetchProperties(value);
-    } else {
-      setProperties([]);
-    }
-  };
-
-  const handleCityInputFocus = () => {
-    setShowSuggestions(true);
-  };
-
-  const handleCitySelect = (selectedCity: string) => {
+  const handleCitySelect = useCallback((selectedCity: string) => {
     setCity(selectedCity);
     setShowSuggestions(false);
-    setProperties([]);
-  };
+  }, []);
 
-  const handlePropertySelect = (property: Property) => {
-    router.push(`/property/${property.id}`);
-  };
-
-  const requestLocation = async () => {
-    if (locationPermission === 'denied') {
-      alert('Location access is denied. Please enable it in your browser settings.');
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!city.trim()) {
+      alert('Please enter a city to search');
       return;
     }
-    
-    await getCurrentLocation();
-  };
 
-  const fetchProperties = async (searchCity: string) => {
-    if (!searchCity.trim()) return;
-    
-    setIsLoadingProperties(true);
-    
-    try {
-      // Escape special characters for SQL LIKE query
-      const searchTerm = searchCity.trim().replace(/[%_]/g, '\\$&');
-      
-      const { data, error } = await supabase
-        .from('properties')
-        .select('id, name, city, area, address, price, property_type')
-        .or(`city.ilike.%${searchTerm}%,area.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
-        .limit(6);
+    // Build search parameters
+    const params = new URLSearchParams({
+      city: city.trim(),
+      duration: duration.toString(),
+    });
 
-      if (error) {
-        console.error('Error fetching properties:', error);
-        setProperties([]);
-      } else {
-        setProperties(data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching properties:', error);
-      setProperties([]);
-    } finally {
-      setIsLoadingProperties(false);
+    if (checkInDate) {
+      params.append('checkIn', checkInDate);
     }
-  };
-
-  const getCurrentLocation = async () => {
-    setIsGettingLocation(true);
     
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutes
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      
-      // Use free reverse geocoding service
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'NiwasNest Property Search'
-          }
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        const address = data.address;
-        
-        if (address) {
-          // Extract city information
-          const detectedCity = address.city || address.town || address.village || address.state_district || address.state;
-          
-          if (detectedCity) {
-            setCity(detectedCity);
-            setShowSuggestions(false);
-            fetchProperties(detectedCity);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      alert('Unable to get your location. Please enter your city manually.');
-    } finally {
-      setIsGettingLocation(false);
+    if (checkOutDate) {
+      params.append('checkOut', checkOutDate);
     }
-  };
-
-  const handleSearch = () => {
-    if (city.trim()) {
-      // Add to recent searches
-      const updatedRecent = [city, ...recentSearches.filter(c => c !== city)].slice(0, 3);
-      setRecentSearches(updatedRecent);
-      localStorage.setItem('recentCitySearches', JSON.stringify(updatedRecent));
-    }
-
-    const params = new URLSearchParams();
-    if (city) params.set('city', city);
-    if (duration) params.set('duration', duration.toString());
-    if (checkInDate) params.set('checkIn', checkInDate);
-    if (checkOutDate) params.set('checkOut', checkOutDate);
 
     router.push(`/listings?${params.toString()}`);
-  };
+  }, [city, duration, checkInDate, checkOutDate, router]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
       month: 'short', 
-      day: 'numeric' 
+      day: 'numeric'
     });
-  };
+  }, []);
 
   return (
-    <div className="modern-card rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
-      <div className="space-y-4 sm:space-y-6">
-        {/* Location Search */}
-        <div className="relative">
-          <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
-            Where do you want to stay?
-          </label>
-          <div className="relative">
-            <FaMapMarkerAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
-            <input
-              ref={cityInputRef}
-              type="text"
-              value={city}
-              onChange={handleCityInputChange}
-              onFocus={handleCityInputFocus}
-              placeholder="Search city, area or property"
-              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
-              style={{ 
-                borderColor: 'rgba(99, 179, 237, 0.3)',
-                backgroundColor: '#F7FAFC',
-                color: '#2D3748'
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#63B3ED';
-                handleCityInputFocus();
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)';
-              }}
-            />
-            
-            {/* City Suggestions Dropdown */}
+    <div className="w-full max-w-4xl mx-auto">
+      <form onSubmit={handleSearch} className="space-y-4">
+        {/* Main Search Row */}
+        <div className="flex flex-col lg:flex-row gap-4 p-4 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg">
+          {/* City Input */}
+          <div className="flex-1 relative">
+            <div className="relative">
+              <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
+              <input
+                ref={cityInputRef}
+                type="text"
+                placeholder="Enter city (e.g., Bangalore, Mumbai)"
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className="w-full pl-12 pr-4 py-4 text-lg font-medium border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* City Suggestions */}
             {showSuggestions && (
               <div 
                 ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 modern-card border-2 rounded-lg sm:rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto mt-2"
-                style={{ borderColor: 'rgba(99, 179, 237, 0.2)' }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 max-h-60 overflow-y-auto"
               >
-                {/* Use Current Location Option */}
-                {locationPermission !== 'denied' && (
+                {filteredCities.map((cityName) => (
                   <button
-                    onClick={requestLocation}
-                    disabled={isGettingLocation}
-                    className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left hover:bg-primary/5 flex items-center space-x-3 sm:space-x-4 border-b border-primary/10 disabled:opacity-50 transition-all duration-300"
+                    key={cityName}
+                    type="button"
+                    onClick={() => handleCitySelect(cityName)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
                   >
-                    <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FF6711' }}>
-                      {isGettingLocation ? (
-                        <FaSpinner className="animate-spin text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
-                      ) : (
-                        <FaLocationArrow className="text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-base sm:text-lg" style={{ color: '#FF6711' }}>
-                        {isGettingLocation ? 'Getting location...' : 'Use current location'}
-                      </div>
-                      <div className="text-sm sm:text-base" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>Properties near me</div>
-                    </div>
+                    <FaMapMarkerAlt className="text-gray-400" />
+                    <span className="font-medium">{cityName}</span>
                   </button>
-                )}
-
-                {/* Recent Searches */}
-                {recentSearches.length > 0 && !city.trim() && (
-                  <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
-                      Recent searches
-                    </div>
-                    {recentSearches.map((recentCity, index) => (
-                      <button
-                        key={`recent-${index}`}
-                        onClick={() => handleCitySelect(recentCity)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EDF2F7' }}>
-                          <FaHistory className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{recentCity}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {/* Locality Suggestions - Show first when typing */}
-                {city.trim() && filteredCities.length > 0 && (
-                  <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
-                      Cities
-                    </div>
-                    {filteredCities.slice(0, 5).map((cityName, index) => (
-                      <button
-                        key={`filtered-${index}`}
-                        onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 179, 237, 0.2)' }}>
-                          <FaMapMarkerAlt className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{cityName}</div>
-                        </div>
-                        <div className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.7)', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
-                          City
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {/* Properties from Database - Show only for complete city names */}
-                {city.trim() && properties.length > 0 && (
-                  <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide flex items-center justify-between" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
-                      <span>Properties in {city}</span>
-                      {isLoadingProperties && <FaSpinner className="animate-spin text-base sm:text-lg" />}
-                    </div>
-                    {properties.map((property) => (
-                      <button
-                        key={property.id}
-                        onClick={() => handlePropertySelect(property)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 border-b last:border-b-0 transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'transparent',
-                          borderColor: 'rgba(99, 179, 237, 0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FF6711' }}>
-                          <FaBuilding className="text-sm sm:text-lg" style={{ color: '#F7FAFC' }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-base sm:text-lg truncate" style={{ color: '#2D3748' }}>{property.name}</div>
-                          <div className="text-sm sm:text-base mb-1" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
-                            <span className="truncate">{property.address}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm sm:text-base" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
-                            <span>{property.area || property.city}</span>
-                            <span style={{ color: 'rgba(99, 179, 237, 0.5)' }}>•</span>
-                            <span className="font-bold" style={{ color: '#FF6711' }}>₹{property.price?.toLocaleString()}/month</span>
-                          </div>
-                        </div>
-                        <div className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.7)', backgroundColor: 'rgba(255, 103, 17, 0.1)' }}>
-                          Property
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {/* Popular Cities */}
-                {!city.trim() && (
-                  <>
-                    <div className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold uppercase tracking-wide" style={{ color: '#2D3748', backgroundColor: 'rgba(99, 179, 237, 0.1)' }}>
-                      Popular cities
-                    </div>
-                    {popularCities.slice(0, 10).map((cityName, index) => (
-                      <button
-                        key={`popular-${index}`}
-                        onClick={() => handleCitySelect(cityName)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center space-x-3 sm:space-x-4 transition-all duration-300"
-                        style={{ 
-                          backgroundColor: 'transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(99, 179, 237, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 179, 237, 0.2)' }}>
-                          <FaMapMarkerAlt className="text-sm sm:text-lg" style={{ color: '#FF6711' }} />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-base sm:text-lg" style={{ color: '#2D3748' }}>{cityName}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-
-                {/* No Results */}
-                {city.trim() && !isLoadingProperties && properties.length === 0 && filteredCities.length === 0 && (
-                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
-                    <div className="text-base sm:text-lg font-medium">No cities or properties found matching "{city}"</div>
-                    <div className="text-sm mt-2">Try searching for a popular city name</div>
-                  </div>
-                )}
-
-                {/* Loading State */}
-                {city.trim() && isLoadingProperties && (
-                  <div className="px-4 sm:px-6 py-6 sm:py-8 text-center" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
-                    <FaSpinner className="animate-spin mx-auto mb-3 text-xl sm:text-2xl" style={{ color: '#FF6711' }} />
-                    <div className="text-base sm:text-lg font-medium">Searching for properties in {city}...</div>
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Duration and Dates Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          {/* Duration Selection */}
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
-              Duration
-            </label>
+          {/* Duration Selector */}
+          <div className="lg:w-48">
             <div className="relative">
-              <FaClock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
+              <FaClock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg appearance-none cursor-pointer"
-                style={{ 
-                  borderColor: 'rgba(99, 179, 237, 0.3)',
-                  backgroundColor: '#F7FAFC',
-                  color: '#2D3748'
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#63B3ED'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)'}
+                className="w-full pl-12 pr-4 py-4 text-lg font-medium border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors appearance-none bg-white"
               >
                 {durationOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -497,89 +178,72 @@ export default function SearchForm() {
                   </option>
                 ))}
               </select>
-              <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#63B3ED' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
             </div>
           </div>
 
+          {/* Search Button */}
+          <button
+            type="submit"
+            className="lg:w-20 h-16 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-colors flex items-center justify-center font-semibold text-lg shadow-lg"
+          >
+            <FaSearch className="text-xl" />
+          </button>
+        </div>
+
+        {/* Date Row */}
+        <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white/90 backdrop-blur-md rounded-xl">
           {/* Check-in Date */}
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Check-in Date
             </label>
             <div className="relative">
-              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
+              <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 value={checkInDate}
                 onChange={(e) => setCheckInDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 focus:outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium transition-all duration-300 focus:shadow-lg"
-                style={{ 
-                  borderColor: 'rgba(99, 179, 237, 0.3)',
-                  backgroundColor: '#F7FAFC',
-                  color: '#2D3748'
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#63B3ED'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(99, 179, 237, 0.3)'}
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none transition-colors"
               />
             </div>
-            {checkInDate && (
-              <div className="mt-1 text-xs sm:text-sm font-medium" style={{ color: '#63B3ED' }}>
-                {formatDate(checkInDate)}
-              </div>
-            )}
           </div>
 
-          {/* Check-out Date */}
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2 sm:mb-3 uppercase tracking-wide" style={{ color: '#2D3748' }}>
+          {/* Check-out Date (Read-only) */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Check-out Date
             </label>
             <div className="relative">
-              <FaCalendarAlt className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-base sm:text-lg z-10" style={{ color: '#63B3ED' }} />
+              <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 value={checkOutDate}
                 readOnly
-                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 outline-none rounded-lg sm:rounded-xl text-base sm:text-lg font-medium cursor-not-allowed"
-                style={{ 
-                  borderColor: 'rgba(99, 179, 237, 0.3)',
-                  backgroundColor: '#EDF2F7',
-                  color: '#2D3748'
-                }}
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
               />
             </div>
-            {checkOutDate && (
-              <div className="mt-1 text-xs sm:text-sm font-medium" style={{ color: '#63B3ED' }}>
-                {formatDate(checkOutDate)}
+          </div>
+
+          {/* Date Summary */}
+          <div className="flex items-end">
+            <div className="px-4 py-3 bg-orange-100 rounded-lg">
+              <div className="text-sm font-medium text-orange-800">
+                {checkInDate && checkOutDate ? (
+                  <>
+                    {formatDate(checkInDate)} - {formatDate(checkOutDate)}
+                    <div className="text-xs text-orange-600 mt-1">
+                      {duration} month{duration > 1 ? 's' : ''}
+                    </div>
+                  </>
+                ) : (
+                  'Select dates'
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
-
-        <button
-          onClick={handleSearch}
-          className="w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl text-white"
-          style={{ backgroundColor: '#FF6711' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#E55A0F';
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 103, 17, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#FF6711';
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-          }}
-        >
-          <FaSearch />
-          <span>Search Properties</span>
-        </button>
-      </div>
+      </form>
     </div>
   );
 }

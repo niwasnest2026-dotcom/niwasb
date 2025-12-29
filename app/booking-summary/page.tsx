@@ -230,13 +230,55 @@ export default function BookingSummaryPage() {
       const amountPaid = Math.round(selectedRoom.price_per_person * 0.2); // 20% of one month rent only
       const amountDue = totalAmount - amountPaid; // Remaining amount
 
-      // Create the booking record with only essential fields first
+      // For Room type properties, create or find a default room
+      let finalRoomId = null;
+      if (propertyType === 'Room') {
+        // For Room type properties, try to find or create a default room
+        try {
+          const { data: existingRoom, error: roomError } = await supabase
+            .from('property_rooms')
+            .select('id')
+            .eq('property_id', property!.id)
+            .eq('room_number', 'Main Room')
+            .single();
+
+          if (existingRoom) {
+            finalRoomId = (existingRoom as any).id;
+          } else {
+            // Create a default room for this Room type property
+            const { data: newRoom, error: createError } = await supabase
+              .from('property_rooms')
+              .insert({
+                property_id: property!.id,
+                room_number: 'Main Room',
+                sharing_type: 'Private Room',
+                price_per_person: selectedRoom.price_per_person,
+                security_deposit_per_person: selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2,
+                total_beds: 1,
+                available_beds: 1,
+                room_type: 'Private',
+                is_available: true
+              } as any)
+              .select('id')
+              .single();
+
+            if (newRoom) {
+              finalRoomId = (newRoom as any).id;
+            }
+          }
+        } catch (error) {
+          console.warn('Could not create/find room for Room type property:', error);
+        }
+      } else if (selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
+        finalRoomId = selectedRoom.id;
+      }
+
+      // Create the booking record with all available fields from schema
       const bookingData: any = {
         property_id: property!.id,
         guest_name: fullName,
         guest_email: user.email, // Always use authenticated user's email
         guest_phone: phone,
-        guest_whatsapp: whatsappNumber,
         sharing_type: selectedRoom.sharing_type,
         price_per_person: selectedRoom.price_per_person,
         security_deposit_per_person: securityDeposit,
@@ -245,28 +287,25 @@ export default function BookingSummaryPage() {
         amount_due: amountDue,
         payment_method: 'razorpay',
         payment_status: 'partial', // 20% paid
-        booking_status: 'confirmed',
+        booking_status: 'confirmed', // Automatically confirmed upon payment
         payment_reference: paymentId,
         payment_date: new Date().toISOString(),
-        notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
+        booking_date: new Date().toISOString(),
+        notes: `Booking confirmed automatically upon payment. Payment ID: ${paymentId}. WhatsApp: ${whatsappNumber}. ${duration ? `Duration: ${duration} months. ` : ''}${sharingType ? `Selected sharing type: ${sharingType}. ` : propertyType === 'Room' ? 'Room type property booking. ' : `Specific room: ${selectedRoom.room_number}. `}Property: ${property!.name}.`
       };
 
-      // Add optional fields only if they exist
-      if (duration) {
-        bookingData.duration_months = parseInt(duration);
+      // Add room_id if available
+      if (finalRoomId) {
+        bookingData.room_id = finalRoomId;
       }
-      
+
+      // Add check-in and check-out dates if provided
       if (checkIn) {
         bookingData.check_in_date = checkIn;
       }
       
       if (checkOut) {
         bookingData.check_out_date = checkOut;
-      }
-
-      // Only add room_id if it's not a mock room for Room type properties
-      if (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
-        bookingData.room_id = selectedRoom.id;
       }
 
       // Add user_id if user is available
@@ -285,6 +324,38 @@ export default function BookingSummaryPage() {
 
         if (!bookingError && bookingResult) {
           bookingId = (bookingResult as any).id;
+          
+          // Update available beds count - decrease by 1 (only if room_id exists)
+          if (finalRoomId) {
+            try {
+              const { data: roomData, error: roomError } = await supabase
+                .from('property_rooms')
+                .select('available_beds')
+                .eq('id', finalRoomId)
+                .single();
+
+              if (!roomError && roomData && (roomData as any).available_beds > 0) {
+                // Decrease available beds by 1
+                const { error: updateError } = await supabase
+                  .from('property_rooms')
+                  .update({
+                    available_beds: (roomData as any).available_beds - 1,
+                    updated_at: new Date().toISOString()
+                  } as any)
+                  .eq('id', finalRoomId);
+
+                if (updateError) {
+                  console.error('Failed to update available beds:', updateError);
+                } else {
+                  console.log('Successfully updated available beds count');
+                }
+              } else {
+                console.error('Room not found or no available beds:', roomError);
+              }
+            } catch (bedUpdateError) {
+              console.error('Error updating bed availability:', bedUpdateError);
+            }
+          }
         } else {
           console.warn('Booking creation failed, but payment was successful:', bookingError);
         }
