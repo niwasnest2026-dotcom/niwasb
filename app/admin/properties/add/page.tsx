@@ -40,6 +40,7 @@ export default function AddProperty() {
     verified: false,
     instant_book: false,
     secure_booking: false,
+    is_available: true,
   });
 
   useEffect(() => {
@@ -128,6 +129,7 @@ export default function AddProperty() {
           verified: formData.verified,
           instant_book: formData.instant_book,
           secure_booking: formData.secure_booking,
+          is_available: formData.is_available,
         }] as any)
         .select()
         .single();
@@ -488,6 +490,17 @@ export default function AddProperty() {
           </div>
 
           <div className="space-y-3">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                name="is_available"
+                checked={formData.is_available}
+                onChange={handleChange}
+                className="rounded text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">Property Available for Booking</span>
+            </label>
+
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"

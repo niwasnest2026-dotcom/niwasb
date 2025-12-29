@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
         rating: 4.5,
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true
       },
       {
         name: 'Green Valley PG',
@@ -53,7 +54,8 @@ export async function POST(request: NextRequest) {
         rating: 4.2,
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true
       },
       {
         name: 'Elite Residency',
@@ -70,7 +72,8 @@ export async function POST(request: NextRequest) {
         rating: 4.8,
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true
       }
     ];
 
