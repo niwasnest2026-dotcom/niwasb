@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const options = {
       amount: amount * 100, // Razorpay expects amount in paise
       currency,
-      receipt,
+      receipt: receipt.substring(0, 40), // Razorpay receipt max length is 40 characters
       notes,
     };
 

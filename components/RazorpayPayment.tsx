@@ -81,7 +81,7 @@ export default function RazorpayPayment({
           contact: guestPhone,
         },
         theme: {
-          color: '#3AAFA9',
+          color: '#FF6711', // Orange theme to match the website
         },
         method: {
           netbanking: true,
@@ -101,7 +101,6 @@ export default function RazorpayPayment({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                booking_id: bookingId,
               }),
             });
 
@@ -193,7 +192,7 @@ export default function RazorpayPayment({
           ) : (
             <>
               <span>💳</span>
-              <span>Pay ₹{amount.toLocaleString()} with Razorpay</span>
+              <span>Pay ₹{amount.toLocaleString()} Razorpay</span>
             </>
           )}
         </button>
