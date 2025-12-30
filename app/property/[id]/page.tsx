@@ -9,7 +9,7 @@ import {
   FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, FaCouch,
   FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, 
   FaClock, FaCalendarAlt, FaSearch, FaVideo, FaTint, FaFingerprint,
-  FaUser, FaUserTie, FaHome
+  FaUser, FaUserTie, FaHome, FaChevronDown, FaWhatsapp
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import { supabase } from '@/lib/supabase';
@@ -47,6 +47,7 @@ export default function PropertyDetails() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [selectedRoomType, setSelectedRoomType] = useState<string>('');
+  const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [settings, setSettings] = useState<SiteSettings>({
     contact_phone: '+91 63048 09598',
     contact_email: 'niwasnest2026@gmail.com'
@@ -401,21 +402,77 @@ export default function PropertyDetails() {
                     Book Now
                   </Link>
                 )}
-                <div className="mt-4 flex flex-col space-y-2">
-                  <a
-                    href={`tel:${settings.contact_phone}`}
-                    className="flex items-center justify-center text-gray-700 hover:text-primary transition-colors"
+                
+                {/* Contact Dropdown */}
+                <div className="relative contact-dropdown">
+                  <button
+                    onClick={() => setShowContactDropdown(!showContactDropdown)}
+                    className="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all flex items-center justify-between"
                   >
-                    <FaPhone className="mr-2" />
-                    <span className="text-sm font-medium">Call us</span>
-                  </a>
-                  <a
-                    href={`mailto:${settings.contact_email}`}
-                    className="flex items-center justify-center text-gray-700 hover:text-primary transition-colors"
-                  >
-                    <FaEnvelope className="mr-2" />
-                    <span className="text-sm font-medium">Email us</span>
-                  </a>
+                    <span>Get Details & Enquiry</span>
+                    <FaChevronDown className={`transition-transform ${showContactDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showContactDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                      {/* Send to Yourself */}
+                      <a
+                        href={`https://wa.me/${settings.contact_phone.replace(/[^0-9]/g, '')}?text=Hi! Please send me details of ${property.name} located at ${property.area}, ${property.city}. I'm interested in booking.`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-6 py-4 hover:bg-blue-50 transition-colors border-b border-gray-100"
+                        onClick={() => setShowContactDropdown(false)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <FaUser className="text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Send to Yourself</div>
+                            <div className="text-sm text-gray-500">Get property details on your WhatsApp</div>
+                          </div>
+                        </div>
+                      </a>
+                      
+                      {/* Contact Admin */}
+                      <a
+                        href={`https://wa.me/${settings.contact_phone.replace(/[^0-9]/g, '')}?text=Hi! I need assistance regarding ${property.name}. Please help me with booking details.`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-6 py-4 hover:bg-orange-50 transition-colors border-b border-gray-100"
+                        onClick={() => setShowContactDropdown(false)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                            <FaUserTie className="text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Contact Admin</div>
+                            <div className="text-sm text-gray-500">Direct inquiry to Niwas Nest team</div>
+                          </div>
+                        </div>
+                      </a>
+                      
+                      {/* Contact Owner */}
+                      <a
+                        href={`https://wa.me/${settings.contact_phone.replace(/[^0-9]/g, '')}?text=Hello! I'm interested in ${property.name} at ${property.area}, ${property.city}. Can we discuss the booking details?`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-6 py-4 hover:bg-green-50 transition-colors"
+                        onClick={() => setShowContactDropdown(false)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <FaHome className="text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Contact Owner</div>
+                            <div className="text-sm text-gray-500">Direct contact with property owner</div>
+                          </div>
+                        </div>
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
