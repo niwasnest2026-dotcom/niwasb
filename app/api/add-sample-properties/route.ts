@@ -94,8 +94,7 @@ export async function POST(request: NextRequest) {
           price_per_person: (property as any).price,
           security_deposit_per_person: (property as any).security_deposit,
           total_beds: 1,
-          available_beds: 1,
-          is_available: true
+          available_beds: 1
         },
         {
           property_id: (property as any).id,
@@ -104,8 +103,7 @@ export async function POST(request: NextRequest) {
           price_per_person: Math.round((property as any).price * 0.8),
           security_deposit_per_person: Math.round((property as any).security_deposit * 0.8),
           total_beds: 2,
-          available_beds: 2,
-          is_available: true
+          available_beds: 2
         },
         {
           property_id: (property as any).id,
@@ -114,8 +112,7 @@ export async function POST(request: NextRequest) {
           price_per_person: Math.round((property as any).price * 0.6),
           security_deposit_per_person: Math.round((property as any).security_deposit * 0.6),
           total_beds: 3,
-          available_beds: 3,
-          is_available: true
+          available_beds: 3
         }
       );
     }
