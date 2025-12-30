@@ -6,26 +6,41 @@ export async function GET() {
     // Check total properties count
     const { data: allProperties, error: allError } = await supabase
       .from('properties')
-      .select('id, name, is_available')
+      .select('id, name')
       .order('created_at', { ascending: false });
 
     if (allError) throw allError;
 
-    // Check available properties count
-    const { data: availableProperties, error: availableError } = await supabase
-      .from('properties')
-      .select('id, name, is_available')
-      .eq('is_available', true)
-      .order('created_at', { ascending: false });
+    // Try to check available properties (if is_available column exists)
+    let availableProperties = allProperties;
+    let hasIsAvailableColumn = true;
+    
+    try {
+      const { data: availableData, error: availableError } = await supabase
+        .from('properties')
+        .select('id, name, is_available')
+        .eq('is_available', true)
+        .order('created_at', { ascending: false });
 
-    if (availableError) throw availableError;
+      if (!availableError) {
+        availableProperties = availableData;
+      } else {
+        throw availableError;
+      }
+    } catch (availableErr) {
+      // is_available column doesn't exist
+      hasIsAvailableColumn = false;
+      availableProperties = allProperties;
+    }
 
     return NextResponse.json({
       success: true,
       total: allProperties?.length || 0,
       available: availableProperties?.length || 0,
+      hasIsAvailableColumn,
       properties: allProperties || [],
-      availableProperties: availableProperties || []
+      availableProperties: availableProperties || [],
+      note: hasIsAvailableColumn ? 'Using is_available column filter' : 'is_available column not found, showing all properties'
     });
 
   } catch (error: any) {

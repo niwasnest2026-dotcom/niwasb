@@ -53,7 +53,7 @@ export default function ListingsContent() {
       console.log('🔍 Starting property fetch...');
       console.log('Search params:', { location, gender, city, area });
 
-      // Start with basic query - ensure only available properties
+      // Start with basic query - get all properties (is_available column might not exist)
       let query = supabase
         .from('properties')
         .select(`
@@ -68,14 +68,12 @@ export default function ListingsContent() {
           gender_preference,
           rating,
           created_at,
-          is_available,
           description,
           security_deposit,
           verified,
           instant_book,
           secure_booking
-        `)
-        .eq('is_available', true);
+        `);
 
       // Handle location search with simplified logic
       const locationParam = searchParams.get('location');
@@ -145,14 +143,12 @@ export default function ListingsContent() {
             gender_preference,
             rating,
             created_at,
-            is_available,
             description,
             security_deposit,
             verified,
             instant_book,
             secure_booking
           `)
-          .eq('is_available', true)
           .order('created_at', { ascending: false });
 
         if (!fallbackError && fallbackData) {
@@ -176,7 +172,6 @@ export default function ListingsContent() {
         const { data: emergencyData, error: emergencyError } = await supabase
           .from('properties')
           .select('*')
-          .eq('is_available', true)
           .limit(10);
 
         if (!emergencyError && emergencyData) {

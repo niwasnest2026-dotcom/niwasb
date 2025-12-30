@@ -15,7 +15,7 @@ export default function FeaturedProperties() {
 
       console.log('🏠 FeaturedProperties: Starting fetch...');
 
-      // Simplified query - just get basic property data
+      // Simplified query - just get basic property data (no is_available filter)
       const { data, error } = await supabase
         .from('properties')
         .select(`
@@ -28,10 +28,8 @@ export default function FeaturedProperties() {
           property_type,
           gender_preference,
           rating,
-          created_at,
-          is_available
+          created_at
         `)
-        .eq('is_available', true)
         .order('created_at', { ascending: false })
         .limit(6);
 

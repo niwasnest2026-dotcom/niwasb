@@ -51,14 +51,22 @@ export default function PropertiesDebugInfo() {
 
         if (allError) throw allError;
 
-        // Get available properties
-        const { data: availableProps, error: availableError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('is_available', true)
-          .order('created_at', { ascending: false });
+        // Try to get available properties (if is_available column exists)
+        let availableProps = allProps;
+        try {
+          const { data: availableData, error: availableError } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('is_available', true)
+            .order('created_at', { ascending: false });
 
-        if (availableError) throw availableError;
+          if (!availableError) {
+            availableProps = availableData;
+          }
+        } catch (availableErr) {
+          // is_available column doesn't exist, use all properties
+          console.log('is_available column not found, showing all properties');
+        }
 
         console.log('📊 Debug: Properties found:', {
           total: allProps?.length || 0,
