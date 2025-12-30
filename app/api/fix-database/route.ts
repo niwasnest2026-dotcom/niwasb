@@ -19,48 +19,23 @@ export async function POST() {
       });
     }
 
-    console.log('❌ is_available column missing, attempting to add it...');
+    console.log('❌ is_available column missing');
 
-    // Try to add the is_available column using SQL
-    const { error: alterError } = await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_available BOOLEAN DEFAULT true;'
-    });
-
-    if (alterError) {
-      console.error('❌ Could not add column via RPC:', alterError);
-      
-      // Alternative: Update existing properties to have a default behavior
-      // We'll just return instructions for manual fix
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot automatically add is_available column',
-        message: 'Please add the is_available column manually in Supabase dashboard',
-        instructions: [
-          '1. Go to your Supabase dashboard',
-          '2. Navigate to Table Editor > properties',
-          '3. Click "Add Column"',
-          '4. Name: is_available, Type: boolean, Default: true',
-          '5. Save the column',
-          '6. Refresh your application'
-        ],
-        sqlCommand: 'ALTER TABLE properties ADD COLUMN is_available BOOLEAN DEFAULT true;'
-      });
-    }
-
-    // If successful, update all existing properties to be available
-    const { error: updateError } = await supabase
-      .from('properties')
-      .update({ is_available: true })
-      .is('is_available', null);
-
-    if (updateError) {
-      console.error('❌ Could not update existing properties:', updateError);
-    }
-
+    // Since we can't automatically add the column, return manual instructions
     return NextResponse.json({
-      success: true,
-      message: 'Successfully added is_available column and updated existing properties',
-      action: 'added_column'
+      success: false,
+      error: 'is_available column does not exist',
+      message: 'Please add the is_available column manually in Supabase dashboard',
+      instructions: [
+        '1. Go to your Supabase dashboard (https://supabase.com/dashboard)',
+        '2. Navigate to Table Editor > properties',
+        '3. Click "Add Column"',
+        '4. Name: is_available, Type: boolean, Default: true',
+        '5. Save the column',
+        '6. Refresh your application'
+      ],
+      sqlCommand: 'ALTER TABLE properties ADD COLUMN is_available BOOLEAN DEFAULT true;',
+      dashboardUrl: 'https://supabase.com/dashboard'
     });
 
   } catch (error: any) {
@@ -69,9 +44,9 @@ export async function POST() {
       {
         success: false,
         error: error.message,
-        message: 'Database fix failed - manual intervention required',
+        message: 'Database check failed - manual intervention required',
         instructions: [
-          '1. Go to your Supabase dashboard',
+          '1. Go to your Supabase dashboard (https://supabase.com/dashboard)',
           '2. Navigate to Table Editor > properties',
           '3. Click "Add Column"',
           '4. Name: is_available, Type: boolean, Default: true',

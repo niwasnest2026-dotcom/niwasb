@@ -1,6 +1,5 @@
 import SearchForm from '@/components/SearchForm';
 import FeaturedProperties from '@/components/FeaturedProperties';
-import PropertiesDebugInfo from '@/components/PropertiesDebugInfo';
 import { FaHome, FaShieldAlt, FaUsers, FaWifi, FaDumbbell } from 'react-icons/fa';
 
 export default function Home() {
@@ -162,9 +161,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
-      {/* Temporary debug info - remove after fixing */}
-      <PropertiesDebugInfo />
     </div>
   );
 }
