@@ -256,3 +256,39 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 :-ms-input-placeholder {
   color: #6b7280 !important;
 }
+
+/* Prevent text overflow and ensure proper wrapping */
+.text-responsive {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Mobile-first responsive text sizing */
+@media (max-width: 640px) {
+  .price-text {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  .price-label {
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Ensure flex items don't overflow */
+  .flex-mobile-safe {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  
+  /* Better spacing for mobile cards */
+  .mobile-card-spacing {
+    padding: 1rem !important;
+  }
+  
+  /* Prevent button text from wrapping */
+  .btn-nowrap {
+    white-space: nowrap !important;
+  }
+}

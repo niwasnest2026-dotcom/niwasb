@@ -518,7 +518,7 @@ export default function PropertyDetails() {
                       return (
                         <div
                           key={sharingType}
-                          className={`relative bg-white rounded-2xl p-6 transition-all duration-300 cursor-pointer ${
+                          className={`relative bg-white rounded-2xl p-4 sm:p-6 transition-all duration-300 cursor-pointer ${
                             isSelected 
                               ? 'border-2 border-blue-500 shadow-lg' 
                               : isAvailable
@@ -527,7 +527,49 @@ export default function PropertyDetails() {
                           }`}
                           onClick={() => isAvailable && setSelectedRoomType(isSelected ? '' : sharingType)}
                         >
-                          <div className="flex items-center justify-between">
+                          {/* Mobile Layout */}
+                          <div className="block sm:hidden">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 pr-2">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">{sharingType}</h3>
+                                <p className="text-gray-500 text-xs mb-2">{getRoomDescription(sharingType)}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-xl font-bold text-blue-600">
+                                  ₹{lowestPrice.toLocaleString()}
+                                </div>
+                                <div className="text-gray-500 text-xs whitespace-nowrap">per month</div>
+                              </div>
+                            </div>
+                            
+                            <div className="w-full">
+                              {isSelected && (
+                                <button
+                                  className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center space-x-2 text-sm"
+                                >
+                                  <span>SELECTED</span>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                              )}
+                              
+                              {!isSelected && isAvailable && (
+                                <button className="w-full bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-100 transition-colors text-sm">
+                                  SELECT ROOM
+                                </button>
+                              )}
+                              
+                              {!isAvailable && (
+                                <button className="w-full bg-gray-200 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed text-sm">
+                                  FULLY BOOKED
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Desktop Layout */}
+                          <div className="hidden sm:flex items-center justify-between">
                             <div className="flex-1">
                               <h3 className="text-xl font-bold text-gray-900 mb-1">{sharingType}</h3>
                               <p className="text-gray-500 text-sm mb-4">{getRoomDescription(sharingType)}</p>
@@ -570,8 +612,29 @@ export default function PropertyDetails() {
 
                 {/* Security Token and Confirm Button */}
                 {selectedRoomType && (
-                  <div className="max-w-2xl mx-auto mt-8 bg-gray-50 rounded-2xl p-6">
-                    <div className="flex items-center justify-between">
+                  <div className="max-w-2xl mx-auto mt-8 bg-gray-50 rounded-2xl p-4 sm:p-6">
+                    {/* Mobile Layout */}
+                    <div className="block sm:hidden space-y-4">
+                      <div className="text-center">
+                        <div className="text-gray-600 text-sm mb-1">Secure Token:</div>
+                        <div className="text-2xl font-bold text-gray-900">
+                          ₹{Math.round(Math.min(...(property as any).rooms
+                            .filter((room: any) => room.sharing_type === selectedRoomType)
+                            .map((room: any) => room.price_per_person)) * 0.2).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">20% advance payment</div>
+                      </div>
+                      
+                      <Link
+                        href={`/payment?propertyId=${property.id}&sharingType=${encodeURIComponent(selectedRoomType)}${duration ? `&duration=${duration}` : ''}${checkIn ? `&checkIn=${checkIn}` : ''}${checkOut ? `&checkOut=${checkOut}` : ''}${location ? `&location=${encodeURIComponent(location)}` : ''}${gender && gender !== 'any' ? `&gender=${gender}` : ''}${moveIn ? `&moveIn=${moveIn}` : ''}`}
+                        className="block w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl text-center"
+                      >
+                        Confirm Stay
+                      </Link>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex items-center justify-between">
                       <div>
                         <div className="text-gray-600 text-sm mb-1">Secure Token:</div>
                         <div className="text-2xl font-bold text-gray-900">
