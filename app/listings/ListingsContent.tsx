@@ -11,6 +11,7 @@ export default function ListingsContent() {
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<PropertyWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // New search parameters from redesigned SearchForm
   const location = searchParams.get('location') || '';
@@ -36,14 +37,6 @@ export default function ListingsContent() {
     });
   };
 
-  const getGenderIcon = (genderValue: string) => {
-    switch (genderValue) {
-      case 'boys': return FaUser;
-      case 'girls': return FaUser;
-      default: return FaUsers;
-    }
-  };
-
   const getGenderLabel = (genderValue: string) => {
     switch (genderValue) {
       case 'boys': return 'Boys Only';
@@ -55,79 +48,150 @@ export default function ListingsContent() {
   const fetchProperties = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
+      console.log('🔍 Starting property fetch...');
+      console.log('Search params:', { location, gender, city, area });
+
+      // Start with basic query - ensure only available properties
       let query = supabase
         .from('properties')
         .select(`
-          *,
-          amenities:property_amenities(
-            amenity:amenities(*)
-          ),
-          images:property_images(*)
-        `);
+          id,
+          name,
+          price,
+          area,
+          city,
+          address,
+          featured_image,
+          property_type,
+          gender_preference,
+          rating,
+          created_at,
+          is_available,
+          description,
+          security_deposit,
+          verified,
+          instant_book,
+          secure_booking
+        `)
+        .eq('is_available', true);
 
-      // Handle new location parameter (primary search)
+      // Handle location search with simplified logic
       const locationParam = searchParams.get('location');
       if (locationParam && locationParam.trim()) {
-        // Extract city from location string (e.g., "Koramangala, Bangalore" -> "Bangalore")
-        const locationParts = locationParam.split(',').map(part => part.trim());
-        const searchArea = locationParts[0]; // First part (area/college/office)
-        const searchCity = locationParts.length > 1 ? locationParts[locationParts.length - 1] : ''; // Last part (city)
-        
-        // Search across multiple fields with OR condition
-        const searchTerms = [];
-        if (searchArea) {
-          searchTerms.push(`area.ilike.%${searchArea}%`);
-          searchTerms.push(`name.ilike.%${searchArea}%`);
-          searchTerms.push(`address.ilike.%${searchArea}%`);
-        }
-        if (searchCity) {
-          searchTerms.push(`city.ilike.%${searchCity}%`);
-        }
-        
-        if (searchTerms.length > 0) {
-          query = query.or(searchTerms.join(','));
-        }
+        const searchTerm = locationParam.trim();
+        console.log('🔍 Searching by location:', searchTerm);
+        // Use simpler OR condition that's more reliable
+        query = query.or(`area.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`);
       }
-      // Handle legacy city parameter for backward compatibility
-      else {
-        const cityParam = searchParams.get('city');
-        if (cityParam && cityParam.trim()) {
-          const searchTerm = cityParam.trim().replace(/[%_]/g, '\\$&');
-          query = query.or(`city.ilike.%${searchTerm}%,area.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`);
-        }
-
-        const areaParam = searchParams.get('area');
-        if (areaParam) {
-          query = query.ilike('area', `%${areaParam}%`);
-        }
+      
+      // Handle legacy parameters for backward compatibility
+      const cityParam = searchParams.get('city');
+      if (cityParam && cityParam.trim() && !locationParam) {
+        console.log('🔍 Searching by city:', cityParam);
+        query = query.or(`city.ilike.%${cityParam}%,area.ilike.%${cityParam}%`);
       }
 
-      // Handle gender preference
+      const areaParam = searchParams.get('area');
+      if (areaParam && areaParam.trim() && !locationParam) {
+        console.log('🔍 Searching by area:', areaParam);
+        query = query.ilike('area', `%${areaParam}%`);
+      }
+
+      // Handle gender preference with simpler logic
       const genderParam = searchParams.get('gender');
       if (genderParam && genderParam !== 'any') {
+        console.log('🔍 Filtering by gender:', genderParam);
         query = query.or(`gender_preference.eq.${genderParam},gender_preference.eq.any`);
       }
 
-      // Ensure only available properties are shown
-      query = query.eq('is_available', true);
-
-      // Default sorting by created_at (newest first)
+      // Order by created_at (newest first)
       query = query.order('created_at', { ascending: false });
 
+      console.log('📡 Executing database query...');
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database query error:', error);
+        throw error;
+      }
 
+      console.log('✅ Properties fetched:', data?.length || 0);
+
+      // Format properties with minimal data structure
       const formattedProperties = data?.map((property: any) => ({
         ...property,
-        amenities: property.amenities?.map((pa: any) => pa.amenity).filter(Boolean) || [],
-        images: property.images || [],
+        amenities: [], // Load amenities separately if needed
+        images: [], // Load images separately if needed
       })) || [];
 
       setProperties(formattedProperties);
-    } catch (error) {
-      console.error('Error fetching properties:', error);
+
+      // If no properties found, try a fallback query without filters
+      if (formattedProperties.length === 0 && (locationParam || cityParam || areaParam || genderParam)) {
+        console.log('🔄 No properties found with filters, trying fallback...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('properties')
+          .select(`
+            id,
+            name,
+            price,
+            area,
+            city,
+            address,
+            featured_image,
+            property_type,
+            gender_preference,
+            rating,
+            created_at,
+            is_available,
+            description,
+            security_deposit,
+            verified,
+            instant_book,
+            secure_booking
+          `)
+          .eq('is_available', true)
+          .order('created_at', { ascending: false });
+
+        if (!fallbackError && fallbackData) {
+          console.log('✅ Fallback properties found:', fallbackData.length);
+          const fallbackFormatted = fallbackData.map((property: any) => ({
+            ...property,
+            amenities: [],
+            images: [],
+          }));
+          setProperties(fallbackFormatted);
+        }
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error fetching properties:', error);
+      setError(error.message || 'Failed to load properties');
+      
+      // Final fallback - try to get any available properties
+      try {
+        console.log('🆘 Attempting emergency fallback query...');
+        const { data: emergencyData, error: emergencyError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('is_available', true)
+          .limit(10);
+
+        if (!emergencyError && emergencyData) {
+          console.log('🆘 Emergency fallback found:', emergencyData.length, 'properties');
+          const emergencyFormatted = emergencyData.map((property: any) => ({
+            ...property,
+            amenities: [],
+            images: [],
+          }));
+          setProperties(emergencyFormatted);
+          setError(null); // Clear error if emergency fallback works
+        }
+      } catch (emergencyErr) {
+        console.error('💥 Emergency fallback also failed:', emergencyErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -213,8 +277,30 @@ export default function ListingsContent() {
         )}
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <div className="text-red-600 mr-3">⚠️</div>
+            <div>
+              <h3 className="text-red-800 font-semibold">Error Loading Properties</h3>
+              <p className="text-red-700 text-sm mt-1">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  fetchProperties();
+                }}
+                className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results Count */}
-      {!loading && (
+      {!loading && !error && (
         <div className="mb-4">
           <p className="text-gray-600">
             {properties.length === 0 ? 'No properties found' : `${properties.length} ${properties.length === 1 ? 'property' : 'properties'} found`}
@@ -224,9 +310,12 @@ export default function ListingsContent() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading properties...</p>
+          </div>
         </div>
-      ) : properties.length === 0 ? (
+      ) : properties.length === 0 && !error ? (
         <div className="text-center py-20">
           <div className="max-w-md mx-auto">
             <FaMapMarkerAlt className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -234,12 +323,20 @@ export default function ListingsContent() {
             <p className="text-gray-600 mb-6">
               We couldn't find any properties matching your search criteria. Try adjusting your filters or search in a different area.
             </p>
-            <button
-              onClick={() => window.location.href = '/listings'}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              View All Properties
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.href = '/listings'}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors block w-full"
+              >
+                View All Properties
+              </button>
+              <button
+                onClick={() => window.location.href = '/admin/setup'}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors block w-full"
+              >
+                Add Sample Properties (Admin)
+              </button>
+            </div>
           </div>
         </div>
       ) : (

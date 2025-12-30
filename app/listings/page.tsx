@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import ListingsContent from './ListingsContent';
+import PropertiesDebugInfo from '@/components/PropertiesDebugInfo';
 
 export default function ListingsPage() {
   return (
@@ -12,6 +13,9 @@ export default function ListingsPage() {
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
         <ListingsContent />
       </Suspense>
+      
+      {/* Temporary debug info - remove after fixing */}
+      <PropertiesDebugInfo />
     </div>
   );
 }
