@@ -61,8 +61,8 @@ export default function PaymentPage() {
       const currentUrl = window.location.href;
       localStorage.setItem('redirectAfterLogin', currentUrl);
       
-      // Redirect to login page (you can customize this URL)
-      window.location.href = '/auth/login';
+      // Redirect to login page
+      window.location.href = '/login';
       return;
     }
   }, [user, authLoading]);
@@ -70,6 +70,7 @@ export default function PaymentPage() {
   useEffect(() => {
     if (!propertyId || authLoading) {
       if (!authLoading && !propertyId) {
+        // Redirect to home if no property ID
         router.push('/');
       }
       return;
@@ -185,7 +186,7 @@ export default function PaymentPage() {
               onClick={() => {
                 const currentUrl = window.location.href;
                 localStorage.setItem('redirectAfterLogin', currentUrl);
-                window.location.href = '/auth/login';
+                window.location.href = '/login';
               }}
               className="w-full px-6 py-3 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-xl"
               style={{ backgroundColor: '#FF6711' }}

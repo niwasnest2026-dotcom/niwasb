@@ -5,11 +5,11 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  FaStar, FaMapMarkerAlt, FaArrowLeft, FaPhone, FaEnvelope, FaTimes,
+  FaStar, FaMapMarkerAlt, FaArrowLeft, FaTimes,
   FaWifi, FaBolt, FaDumbbell, FaGamepad, FaSnowflake, FaCouch,
   FaBath, FaUtensils, FaBroom, FaTshirt, FaParking, FaShieldAlt, 
   FaClock, FaCalendarAlt, FaSearch, FaVideo, FaTint, FaFingerprint,
-  FaUser, FaUserTie, FaHome, FaChevronDown, FaWhatsapp
+  FaUser, FaUserTie, FaHome, FaChevronDown
 } from 'react-icons/fa';
 import { MdVerified, MdSecurity } from 'react-icons/md';
 import { supabase } from '@/lib/supabase';
