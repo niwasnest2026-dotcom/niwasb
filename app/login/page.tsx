@@ -38,16 +38,27 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Get the current origin, but handle different environments
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Google OAuth error:', error);
+        throw error;
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to login with Google');
+      console.error('Google login error:', err);
+      setError(err.message || 'Failed to login with Google. Please check your internet connection and try again.');
       setLoading(false);
     }
   };
