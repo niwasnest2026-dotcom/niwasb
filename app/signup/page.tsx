@@ -65,7 +65,7 @@ export default function SignupPage() {
 
     try {
       // Get the current origin, but handle different environments
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
