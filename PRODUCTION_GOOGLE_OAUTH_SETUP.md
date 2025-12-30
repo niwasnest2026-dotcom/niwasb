@@ -29,18 +29,20 @@ This guide will set up Google OAuth for your production website: **www.niwasnest
 4. **Scopes**: Add `email`, `profile`, `openid`
 5. **Test users**: Add your email for testing
 
-### **1.4 Create Production OAuth Client**
+### **1.4 Create OAuth Client (Development + Production)**
 1. Go to **APIs & Services** > **Credentials**
 2. Click **+ CREATE CREDENTIALS** > **OAuth client ID**
 3. Choose **Web application**
-4. Name: **"Niwas Nest Production Web Client"**
+4. Name: **"Niwas Nest Web Client"**
 5. **Authorized JavaScript origins**:
    ```
+   http://localhost:3000
    https://www.niwasnest.com
    https://niwasnest.com
    ```
 6. **Authorized redirect URIs**:
    ```
+   http://localhost:3000/auth/callback
    https://www.niwasnest.com/auth/callback
    https://niwasnest.com/auth/callback
    https://xpasvhmwuhipzvcqohhq.supabase.co/auth/v1/callback
@@ -61,15 +63,17 @@ This guide will set up Google OAuth for your production website: **www.niwasnest
 6. Enter your production **Client ID** and **Client Secret**
 7. Click **Save**
 
-### **2.2 Configure Production URLs**
+### **2.2 Configure URLs (Development + Production)**
 1. Go to **Authentication** > **URL Configuration**
-2. **Site URL**: `https://www.niwasnest.com`
-3. **Redirect URLs** (add these):
+2. **Site URL**: `https://www.niwasnest.com` (primary)
+3. **Redirect URLs** (add ALL of these):
    ```
+   http://localhost:3000/auth/callback
    https://www.niwasnest.com/auth/callback
    https://niwasnest.com/auth/callback
    https://www.niwasnest.com/**
    https://niwasnest.com/**
+   http://localhost:3000/**
    ```
 4. Click **Save**
 
@@ -86,19 +90,18 @@ This guide will set up Google OAuth for your production website: **www.niwasnest
    - `niwasnest.com`
    - `www.niwasnest.com`
 
-## ✅ **Step 4: Test Production OAuth**
+## ✅ **Step 4: Test OAuth (Both Environments)**
 
-### **4.1 Deploy Your Website**
-Make sure your website is live at `https://www.niwasnest.com`
+### **4.1 Test Local Development**
+1. **Start server**: `npm run dev` (should run on http://localhost:3000)
+2. **Visit**: `http://localhost:3000/signup`
+3. **Click**: "Sign up with Google"
+4. **Expected**: Redirects to Google, then back to localhost
 
-### **4.2 Test Google OAuth Flow**
+### **4.2 Test Production Website**
 1. **Visit**: `https://www.niwasnest.com/signup`
 2. **Click**: "Sign up with Google"
-3. **Expected Flow**:
-   - Redirects to Google consent screen
-   - User approves permissions
-   - Redirects back to `https://www.niwasnest.com`
-   - User is logged in
+3. **Expected**: Redirects to Google, then back to production site
 
 ## ✅ **Step 5: Troubleshooting Production Issues**
 

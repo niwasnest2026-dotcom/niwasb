@@ -38,13 +38,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Use production domain for live website
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.niwasnest.com';
+      // Detect environment and use appropriate URL
+      const isLocalhost = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      
+      let redirectUrl;
+      if (isLocalhost) {
+        // For local development
+        redirectUrl = `${window.location.origin}/auth/callback`;
+      } else {
+        // For production
+        redirectUrl = 'https://www.niwasnest.com/auth/callback';
+      }
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${origin}/auth/callback`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
