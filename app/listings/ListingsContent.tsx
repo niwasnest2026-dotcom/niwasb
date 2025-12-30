@@ -53,7 +53,16 @@ export default function ListingsContent() {
       console.log('🔍 Starting property fetch...');
       console.log('Search params:', { location, gender, city, area });
 
-      // Start with basic query - get all properties (is_available column might not exist)
+      // First, ensure properties exist in the database
+      try {
+        const ensureResponse = await fetch('/api/ensure-properties');
+        const ensureData = await ensureResponse.json();
+        console.log('🏗️ Ensure properties result:', ensureData);
+      } catch (ensureError) {
+        console.warn('⚠️ Could not ensure properties exist:', ensureError);
+      }
+
+      // Simplified query - get all properties first, then filter
       let query = supabase
         .from('properties')
         .select(`
@@ -73,39 +82,8 @@ export default function ListingsContent() {
           verified,
           instant_book,
           secure_booking
-        `);
-
-      // Handle location search with simplified logic
-      const locationParam = searchParams.get('location');
-      if (locationParam && locationParam.trim()) {
-        const searchTerm = locationParam.trim();
-        console.log('🔍 Searching by location:', searchTerm);
-        // Use simpler OR condition that's more reliable
-        query = query.or(`area.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`);
-      }
-      
-      // Handle legacy parameters for backward compatibility
-      const cityParam = searchParams.get('city');
-      if (cityParam && cityParam.trim() && !locationParam) {
-        console.log('🔍 Searching by city:', cityParam);
-        query = query.or(`city.ilike.%${cityParam}%,area.ilike.%${cityParam}%`);
-      }
-
-      const areaParam = searchParams.get('area');
-      if (areaParam && areaParam.trim() && !locationParam) {
-        console.log('🔍 Searching by area:', areaParam);
-        query = query.ilike('area', `%${areaParam}%`);
-      }
-
-      // Handle gender preference with simpler logic
-      const genderParam = searchParams.get('gender');
-      if (genderParam && genderParam !== 'any') {
-        console.log('🔍 Filtering by gender:', genderParam);
-        query = query.or(`gender_preference.eq.${genderParam},gender_preference.eq.any`);
-      }
-
-      // Order by created_at (newest first)
-      query = query.order('created_at', { ascending: false });
+        `)
+        .order('created_at', { ascending: false });
 
       console.log('📡 Executing database query...');
       const { data, error } = await query;
@@ -115,78 +93,77 @@ export default function ListingsContent() {
         throw error;
       }
 
-      console.log('✅ Properties fetched:', data?.length || 0);
+      console.log('✅ Raw properties fetched:', data?.length || 0);
+
+      if (!data || data.length === 0) {
+        console.log('⚠️ No properties found in database');
+        setProperties([]);
+        return;
+      }
+
+      // Apply filters in JavaScript (more reliable than complex SQL)
+      let filteredProperties = data;
+
+      // Location filter
+      const locationParam = searchParams.get('location');
+      if (locationParam && locationParam.trim()) {
+        const searchTerm = locationParam.trim().toLowerCase();
+        console.log('🔍 Filtering by location:', searchTerm);
+        filteredProperties = filteredProperties.filter(property => 
+          property.area?.toLowerCase().includes(searchTerm) ||
+          property.city?.toLowerCase().includes(searchTerm) ||
+          property.name?.toLowerCase().includes(searchTerm) ||
+          property.address?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Legacy city filter
+      const cityParam = searchParams.get('city');
+      if (cityParam && cityParam.trim() && !locationParam) {
+        const cityTerm = cityParam.trim().toLowerCase();
+        console.log('🔍 Filtering by city:', cityTerm);
+        filteredProperties = filteredProperties.filter(property => 
+          property.city?.toLowerCase().includes(cityTerm) ||
+          property.area?.toLowerCase().includes(cityTerm)
+        );
+      }
+
+      // Legacy area filter
+      const areaParam = searchParams.get('area');
+      if (areaParam && areaParam.trim() && !locationParam) {
+        const areaTerm = areaParam.trim().toLowerCase();
+        console.log('🔍 Filtering by area:', areaTerm);
+        filteredProperties = filteredProperties.filter(property => 
+          property.area?.toLowerCase().includes(areaTerm)
+        );
+      }
+
+      // Gender filter
+      const genderParam = searchParams.get('gender');
+      if (genderParam && genderParam !== 'any') {
+        console.log('🔍 Filtering by gender:', genderParam);
+        filteredProperties = filteredProperties.filter(property => 
+          property.gender_preference === genderParam || 
+          property.gender_preference === 'any' ||
+          !property.gender_preference
+        );
+      }
+
+      console.log('✅ Filtered properties:', filteredProperties.length);
 
       // Format properties with minimal data structure
-      const formattedProperties = data?.map((property: any) => ({
+      const formattedProperties = filteredProperties.map((property: any) => ({
         ...property,
         amenities: [], // Load amenities separately if needed
         images: [], // Load images separately if needed
-      })) || [];
+      }));
 
       setProperties(formattedProperties);
-
-      // If no properties found, try a fallback query without filters
-      if (formattedProperties.length === 0 && (locationParam || cityParam || areaParam || genderParam)) {
-        console.log('🔄 No properties found with filters, trying fallback...');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('properties')
-          .select(`
-            id,
-            name,
-            price,
-            area,
-            city,
-            address,
-            featured_image,
-            property_type,
-            gender_preference,
-            rating,
-            created_at,
-            description,
-            security_deposit,
-            verified,
-            instant_book,
-            secure_booking
-          `)
-          .order('created_at', { ascending: false });
-
-        if (!fallbackError && fallbackData) {
-          console.log('✅ Fallback properties found:', fallbackData.length);
-          const fallbackFormatted = fallbackData.map((property: any) => ({
-            ...property,
-            amenities: [],
-            images: [],
-          }));
-          setProperties(fallbackFormatted);
-        }
-      }
 
     } catch (error: any) {
       console.error('❌ Error fetching properties:', error);
       setError(error.message || 'Failed to load properties');
-      
-      // Final fallback - try to get any available properties
-      try {
-        console.log('🆘 Attempting emergency fallback query...');
-        const { data: emergencyData, error: emergencyError } = await supabase
-          .from('properties')
-          .select('*')
-          .limit(10);
-
-        if (!emergencyError && emergencyData) {
-          console.log('🆘 Emergency fallback found:', emergencyData.length, 'properties');
-          const emergencyFormatted = emergencyData.map((property: any) => ({
-            ...property,
-            amenities: [],
-            images: [],
-          }));
-          setProperties(emergencyFormatted);
-          setError(null); // Clear error if emergency fallback works
-        }
-      } catch (emergencyErr) {
-        console.error('💥 Emergency fallback also failed:', emergencyErr);
-      }
+      setProperties([]);
     } finally {
       setLoading(false);
     }

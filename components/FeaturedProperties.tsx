@@ -15,7 +15,16 @@ export default function FeaturedProperties() {
 
       console.log('🏠 FeaturedProperties: Starting fetch...');
 
-      // Simplified query - just get basic property data (no is_available filter)
+      // First, ensure properties exist in the database
+      try {
+        const ensureResponse = await fetch('/api/ensure-properties');
+        const ensureData = await ensureResponse.json();
+        console.log('🏗️ FeaturedProperties ensure result:', ensureData);
+      } catch (ensureError) {
+        console.warn('⚠️ Could not ensure properties exist:', ensureError);
+      }
+
+      // Simple query - get all properties
       const { data, error } = await supabase
         .from('properties')
         .select(`
@@ -35,7 +44,9 @@ export default function FeaturedProperties() {
 
       if (error) {
         console.error('❌ FeaturedProperties query error:', error);
-        throw error;
+        // Don't throw error, just log it and show empty state
+        setProperties([]);
+        return;
       }
 
       console.log('✅ FeaturedProperties fetched:', data?.length || 0, 'properties');
@@ -51,27 +62,7 @@ export default function FeaturedProperties() {
 
     } catch (error) {
       console.error('❌ FeaturedProperties error:', error);
-      
-      // Fallback: try to get any properties at all
-      try {
-        console.log('🔄 FeaturedProperties: Trying fallback query...');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('properties')
-          .select('*')
-          .limit(6);
-
-        if (!fallbackError && fallbackData) {
-          console.log('✅ FeaturedProperties fallback found:', fallbackData.length, 'properties');
-          const fallbackProperties = fallbackData.map((property: any) => ({
-            ...property,
-            amenities: [],
-            images: [],
-          }));
-          setProperties(fallbackProperties);
-        }
-      } catch (fallbackErr) {
-        console.error('💥 FeaturedProperties fallback also failed:', fallbackErr);
-      }
+      setProperties([]);
     } finally {
       setLoading(false);
     }

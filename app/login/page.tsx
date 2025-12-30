@@ -38,18 +38,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Detect environment and use appropriate URL
-      const isLocalhost = typeof window !== 'undefined' && 
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      // Always use production URL for OAuth redirect
+      // This ensures Google OAuth works correctly on the live website
+      const redirectUrl = 'https://www.niwasnest.com/auth/callback';
       
-      let redirectUrl;
-      if (isLocalhost) {
-        // For local development
-        redirectUrl = `${window.location.origin}/auth/callback`;
-      } else {
-        // For production
-        redirectUrl = 'https://www.niwasnest.com/auth/callback';
-      }
+      console.log('🔐 Google OAuth redirect URL:', redirectUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
