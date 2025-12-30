@@ -38,8 +38,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Get the current origin, but handle different environments
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      // Use production domain for live website
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.niwasnest.com';
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
