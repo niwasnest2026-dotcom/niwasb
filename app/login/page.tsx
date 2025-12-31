@@ -38,13 +38,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Always use production URL for OAuth redirect
-      // This ensures Google OAuth works correctly on the live website
-      const redirectUrl = 'https://www.niwasnest.com/auth/callback';
+      // Force production URL - multiple fallbacks to ensure it works
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.niwasnest.com';
+      const redirectUrl = `${siteUrl}/auth/callback`;
       
-      console.log('🔐 Google OAuth redirect URL:', redirectUrl);
+      console.log('🔐 Google OAuth redirect URL (FORCED):', redirectUrl);
+      console.log('🌐 Current window location:', typeof window !== 'undefined' ? window.location.href : 'server-side');
+      console.log('🔧 Site URL from env:', process.env.NEXT_PUBLIC_SITE_URL);
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -54,6 +56,8 @@ export default function LoginPage() {
           },
         },
       });
+
+      console.log('🔐 OAuth response data:', data);
 
       if (error) {
         console.error('Google OAuth error:', error);
