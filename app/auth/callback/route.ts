@@ -27,6 +27,30 @@ export async function GET(request: NextRequest) {
       }
       
       console.log('✅ Auth callback successful - User:', data.user?.email);
+      
+      // Sync profile data after successful OAuth
+      if (data.user) {
+        try {
+          console.log('🔧 Syncing profile data...');
+          const syncResponse = await fetch(`${requestUrl.origin}/api/sync-profile`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${data.session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (syncResponse.ok) {
+            const syncResult = await syncResponse.json();
+            console.log('✅ Profile sync successful:', syncResult.message);
+          } else {
+            console.warn('⚠️ Profile sync failed, but continuing...');
+          }
+        } catch (syncError) {
+          console.warn('⚠️ Profile sync error:', syncError);
+          // Don't fail the auth flow if profile sync fails
+        }
+      }
     } catch (error) {
       console.error('❌ Auth callback error:', error);
       // Still redirect to home even if there's an error

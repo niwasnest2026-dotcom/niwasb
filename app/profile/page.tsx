@@ -52,32 +52,57 @@ export default function ProfilePage() {
           phone_number: (data as any).phone_number || ''
         });
       } else {
-        // Create profile if it doesn't exist
+        // Create profile if it doesn't exist - populate from auth user data
+        const userMetadata = user.user_metadata || {};
         const newProfile = {
           id: user.id,
           email: user.email || '',
-          full_name: user.user_metadata?.full_name || '',
-          phone: user.user_metadata?.phone || '',
-          phone_number: user.user_metadata?.phone_number || '',
-          avatar_url: user.user_metadata?.avatar_url || null,
+          full_name: userMetadata.full_name || userMetadata.name || '',
+          phone: userMetadata.phone || '',
+          phone_number: userMetadata.phone_number || '',
+          avatar_url: userMetadata.avatar_url || userMetadata.picture || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
 
-        const { data: createdProfile, error: createError } = await (supabase as any)
+        console.log('🔧 Creating profile from user data:', {
+          email: user.email,
+          metadata: userMetadata,
+          profileData: newProfile
+        });
+
+        const { data: createdProfile, error: createError } = await supabase
           .from('profiles')
           .insert(newProfile)
           .select()
           .single();
 
-        if (createError) throw createError;
-
-        setProfile(createdProfile);
-        setFormData({
-          full_name: (createdProfile as any).full_name || '',
-          phone: (createdProfile as any).phone || '',
-          phone_number: (createdProfile as any).phone_number || ''
-        });
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          // If profile creation fails, still show the form with available data
+          setProfile({
+            id: user.id,
+            email: user.email || '',
+            full_name: newProfile.full_name,
+            phone: newProfile.phone,
+            phone_number: newProfile.phone_number,
+            avatar_url: newProfile.avatar_url,
+            created_at: newProfile.created_at,
+            updated_at: newProfile.updated_at
+          } as any);
+          setFormData({
+            full_name: newProfile.full_name,
+            phone: newProfile.phone,
+            phone_number: newProfile.phone_number
+          });
+        } else {
+          setProfile(createdProfile);
+          setFormData({
+            full_name: (createdProfile as any).full_name || '',
+            phone: (createdProfile as any).phone || '',
+            phone_number: (createdProfile as any).phone_number || ''
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching profile:', error);

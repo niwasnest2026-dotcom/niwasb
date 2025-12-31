@@ -17,11 +17,31 @@ export default function SignupPage() {
 
   // Handle auth state changes - redirect to home when user is authenticated
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('✅ User signed in, redirecting to home page...');
+        console.log('✅ User signed in, syncing profile and redirecting...');
+        
+        // Sync profile data (especially important for Google OAuth)
+        try {
+          const syncResponse = await fetch('/api/sync-profile', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (syncResponse.ok) {
+            const syncResult = await syncResponse.json();
+            console.log('✅ Profile synced:', syncResult.message);
+          }
+        } catch (syncError) {
+          console.warn('⚠️ Profile sync failed:', syncError);
+        }
+        
+        // Redirect to home page
         router.push('/');
       }
     });
@@ -49,20 +69,35 @@ export default function SignupPage() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: phoneNumber,
+          }
+        }
       });
 
       if (error) throw error;
 
       if (data.user) {
-        const { error: profileError } = await (supabase as any)
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            phone_number: phoneNumber,
-          })
-          .eq('id', data.user.id);
+        // Create or update profile with signup data
+        const profileData = {
+          id: data.user.id,
+          email: email,
+          full_name: fullName,
+          phone_number: phoneNumber,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
 
-        if (profileError) throw profileError;
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert(profileData);
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw error, just log it
+        }
       }
 
       // Redirect will be handled by useEffect above

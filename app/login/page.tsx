@@ -14,11 +14,31 @@ export default function LoginPage() {
 
   // Handle auth state changes - redirect to home when user is authenticated
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
-        console.log('✅ User signed in, redirecting to home page...');
+        console.log('✅ User signed in, syncing profile and redirecting...');
+        
+        // Sync profile data (especially important for Google OAuth)
+        try {
+          const syncResponse = await fetch('/api/sync-profile', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (syncResponse.ok) {
+            const syncResult = await syncResponse.json();
+            console.log('✅ Profile synced:', syncResult.message);
+          }
+        } catch (syncError) {
+          console.warn('⚠️ Profile sync failed:', syncError);
+        }
+        
+        // Redirect to home page
         router.push('/');
       }
     });
