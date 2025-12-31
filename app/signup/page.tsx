@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +14,20 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Handle auth state changes - redirect to home when user is authenticated
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state change:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('✅ User signed in, redirecting to home page...');
+        router.push('/');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +65,8 @@ export default function SignupPage() {
         if (profileError) throw profileError;
       }
 
-      router.push('/');
+      // Redirect will be handled by useEffect above
+      console.log('✅ Email signup successful, waiting for auth state change...');
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
     } finally {
@@ -89,6 +104,9 @@ export default function SignupPage() {
         console.error('Google OAuth error:', error);
         throw error;
       }
+
+      // Don't set loading to false - redirect will happen via auth state change
+      console.log('✅ Google OAuth initiated, waiting for callback and redirect...');
     } catch (err: any) {
       console.error('Google signup error:', err);
       setError(err.message || 'Failed to continue with Google. Please check your internet connection and try again.');
