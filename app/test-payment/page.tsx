@@ -1,0 +1,313 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { FaArrowLeft, FaCreditCard, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+
+export default function TestPaymentPage() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    propertyId: '1',
+    roomId: '1',
+    guestName: 'John Doe',
+    guestEmail: 'john.doe@example.com',
+    guestPhone: '+919876543210',
+    amount: '2400'
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const createTestPayment = async () => {
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/test-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          propertyId: parseInt(formData.propertyId),
+          roomId: parseInt(formData.roomId),
+          guestName: formData.guestName,
+          guestEmail: formData.guestEmail,
+          guestPhone: formData.guestPhone,
+          amount: parseInt(formData.amount)
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+
+      if (data.success) {
+        // Auto-redirect to success page after 2 seconds
+        setTimeout(() => {
+          window.open(data.data.successUrl, '_blank');
+        }, 2000);
+      }
+    } catch (error: any) {
+      setResult({
+        success: false,
+        error: error.message || 'Failed to create test payment'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const quickTestPayment = async () => {
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/test-payment', {
+        method: 'GET'
+      });
+
+      const data = await response.json();
+      setResult(data);
+
+      if (data.success) {
+        // Auto-redirect to success page after 2 seconds
+        setTimeout(() => {
+          window.open(data.data.successUrl, '_blank');
+        }, 2000);
+      }
+    } catch (error: any) {
+      setResult({
+        success: false,
+        error: error.message || 'Failed to create test payment'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen py-8 px-4" style={{ 
+      background: 'linear-gradient(135deg, #63B3ED 0%, #90CDF4 50%, #63B3ED 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 20s ease infinite'
+    }}>
+      <div className="max-w-4xl mx-auto">
+        <Link
+          href="/"
+          className="inline-flex items-center hover:underline mb-6"
+          style={{ color: '#FF6711' }}
+        >
+          <FaArrowLeft className="mr-2" />
+          Back to Home
+        </Link>
+
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-center mb-8">
+            <FaCreditCard className="text-4xl text-orange-500 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Test Payment System</h1>
+            <p className="text-gray-600">Create test successful payments for development and testing</p>
+          </div>
+
+          {/* Quick Test Button */}
+          <div className="mb-8 p-6 bg-green-50 border border-green-200 rounded-xl">
+            <h2 className="text-xl font-bold text-green-800 mb-4">Quick Test Payment</h2>
+            <p className="text-green-700 mb-4">
+              Create a test payment with default values instantly
+            </p>
+            <button
+              onClick={quickTestPayment}
+              disabled={loading}
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Creating Test Payment...</span>
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle />
+                  <span>Create Quick Test Payment</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Custom Test Form */}
+          <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
+            <h2 className="text-xl font-bold text-blue-800 mb-4">Custom Test Payment</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property ID
+                </label>
+                <input
+                  type="number"
+                  name="propertyId"
+                  value={formData.propertyId}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room ID
+                </label>
+                <input
+                  type="number"
+                  name="roomId"
+                  value={formData.roomId}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Guest Name
+                </label>
+                <input
+                  type="text"
+                  name="guestName"
+                  value={formData.guestName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Guest Email
+                </label>
+                <input
+                  type="email"
+                  name="guestEmail"
+                  value={formData.guestEmail}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="john.doe@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Guest Phone
+                </label>
+                <input
+                  type="tel"
+                  name="guestPhone"
+                  value={formData.guestPhone}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="+919876543210"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="2400"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={createTestPayment}
+              disabled={loading}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Creating Test Payment...</span>
+                </>
+              ) : (
+                <>
+                  <FaCreditCard />
+                  <span>Create Custom Test Payment</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Result Display */}
+          {result && (
+            <div className={`p-6 rounded-xl ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+              <h3 className={`text-lg font-bold mb-4 ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+                {result.success ? '✅ Test Payment Created Successfully!' : '❌ Test Payment Failed'}
+              </h3>
+              
+              {result.success ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-green-700">Payment ID:</span>
+                      <span className="ml-2 text-green-600">{result.data.paymentId}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-green-700">Booking ID:</span>
+                      <span className="ml-2 text-green-600">{result.data.bookingId}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-green-700">Amount:</span>
+                      <span className="ml-2 text-green-600">₹{result.data.amount.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-green-700">Property:</span>
+                      <span className="ml-2 text-green-600">{result.data.propertyName}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-green-100 rounded-lg">
+                    <p className="text-green-800 font-medium mb-2">🎉 Success Page will open automatically!</p>
+                    <p className="text-green-700 text-sm">
+                      Or click here: 
+                      <a 
+                        href={result.data.successUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-2 underline hover:no-underline"
+                      >
+                        View Payment Success Page
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-red-700">{result.error}</p>
+              )}
+            </div>
+          )}
+
+          {/* Information */}
+          <div className="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">ℹ️ What This Does</h3>
+            <ul className="text-gray-700 space-y-2 text-sm">
+              <li>• Creates a test booking record in the database</li>
+              <li>• Generates realistic payment and booking IDs</li>
+              <li>• Simulates successful payment completion</li>
+              <li>• Triggers WhatsApp notification system (if configured)</li>
+              <li>• Redirects to payment success page with all details</li>
+              <li>• Perfect for testing the complete payment flow</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
