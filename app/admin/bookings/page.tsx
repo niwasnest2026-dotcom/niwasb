@@ -21,6 +21,7 @@ interface BookingWithDetails {
   booking_status: string;
   booking_date: string;
   payment_date: string | null;
+  payment_id: string | null;
   property: {
     name: string;
     city: string;
@@ -234,6 +235,9 @@ export default function AdminBookings() {
                         Payment
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -291,6 +295,17 @@ export default function AdminBookings() {
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(booking.payment_status)}`}>
                               {booking.payment_status}
                             </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {booking.payment_id ? (
+                              <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                {booking.payment_id}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">No Payment ID</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

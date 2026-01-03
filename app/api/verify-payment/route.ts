@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
         payment_status: 'partial',
         booking_status: 'confirmed',
         payment_date: new Date().toISOString(),
+        payment_id: razorpay_payment_id, // Store the Razorpay payment ID
         notes: `Payment ID: ${razorpay_payment_id}, Order: ${razorpay_order_id}, User: ${user.id}`
       };
 

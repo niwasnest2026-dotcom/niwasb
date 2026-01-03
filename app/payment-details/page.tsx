@@ -137,6 +137,7 @@ export default function PaymentDetailsPage() {
         payment_status: 'partial', // 20% paid
         booking_status: 'confirmed',
         payment_date: new Date().toISOString(),
+        payment_id: paymentId, // Store the Razorpay payment ID
         check_in_date: checkIn || null,
         check_out_date: checkOut || null,
         notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`

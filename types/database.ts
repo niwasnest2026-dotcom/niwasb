@@ -340,6 +340,7 @@ export interface Database {
           check_out_date: string | null
           booking_date: string | null
           payment_date: string | null
+          payment_id: string | null
           notes: string | null
           created_at: string | null
           updated_at: string | null
@@ -365,6 +366,7 @@ export interface Database {
           check_out_date?: string | null
           booking_date?: string | null
           payment_date?: string | null
+          payment_id?: string | null
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -390,6 +392,7 @@ export interface Database {
           check_out_date?: string | null
           booking_date?: string | null
           payment_date?: string | null
+          payment_id?: string | null
           notes?: string | null
           created_at?: string | null
           updated_at?: string | null

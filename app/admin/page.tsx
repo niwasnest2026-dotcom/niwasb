@@ -40,6 +40,31 @@ export default function AdminDashboard() {
 
         setIsAdmin(true);
 
+        try {
+          // Try to use admin stats API with auth token
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const response = await fetch('/api/admin-stats', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+
+            if (response.ok) {
+              const { stats } = await response.json();
+              setStats({
+                totalProperties: stats.totalProperties || 0,
+                totalUsers: stats.totalUsers || 0,
+                totalAmenities: stats.totalAmenities || 0,
+              });
+              return; // Success, exit early
+            }
+          }
+        } catch (apiError) {
+          console.log('Admin stats API failed, falling back to direct queries');
+        }
+
+        // Fallback to direct queries if API fails
         const [propertiesResult, usersResult, amenitiesResult] = await Promise.all([
           supabase.from('properties').select('id', { count: 'exact', head: true }),
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -114,7 +139,17 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Users</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.totalUsers}</p>
+                <div className="flex items-center space-x-2">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stats.totalUsers}</p>
+                  {stats.totalUsers === 0 && (
+                    <Link 
+                      href="/admin/fix-users"
+                      className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full hover:bg-red-200 transition-colors"
+                    >
+                      Fix Issue
+                    </Link>
+                  )}
+                </div>
               </div>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(43, 122, 120, 0.1)' }}>
                 <span className="text-xl sm:text-2xl">👥</span>
