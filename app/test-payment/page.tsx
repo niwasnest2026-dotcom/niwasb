@@ -1,20 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaCreditCard, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { FaArrowLeft, FaCreditCard, FaCheckCircle, FaSpinner, FaUser, FaSignInAlt } from 'react-icons/fa';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function TestPaymentPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [formData, setFormData] = useState({
     propertyId: '1',
     roomId: '1',
-    guestName: 'John Doe',
-    guestEmail: 'john.doe@example.com',
+    guestName: '',
+    guestEmail: '',
     guestPhone: '+919876543210',
     amount: '2400'
   });
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Auto-populate form with user data
+      setFormData(prev => ({
+        ...prev,
+        guestName: user.user_metadata?.full_name || user.user_metadata?.name || 'Test User',
+        guestEmail: user.email || 'test@example.com'
+      }));
+    }
+  }, [user, authLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,14 +38,31 @@ export default function TestPaymentPage() {
   };
 
   const createTestPayment = async () => {
+    if (!user) {
+      alert('Please login first to test payment');
+      router.push('/login');
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
     try {
+      // Get the session token properly from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        alert('Authentication token not found. Please login again.');
+        router.push('/login');
+        return;
+      }
+
       const response = await fetch('/api/test-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           propertyId: parseInt(formData.propertyId),
@@ -37,7 +70,8 @@ export default function TestPaymentPage() {
           guestName: formData.guestName,
           guestEmail: formData.guestEmail,
           guestPhone: formData.guestPhone,
-          amount: parseInt(formData.amount)
+          amount: parseInt(formData.amount),
+          userId: user.id // Link to authenticated user
         }),
       });
 
@@ -61,12 +95,31 @@ export default function TestPaymentPage() {
   };
 
   const quickTestPayment = async () => {
+    if (!user) {
+      alert('Please login first to test payment');
+      router.push('/login');
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
     try {
+      // Get the session token properly from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        alert('Authentication token not found. Please login again.');
+        router.push('/login');
+        return;
+      }
+
       const response = await fetch('/api/test-payment', {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
       });
 
       const data = await response.json();
@@ -110,6 +163,49 @@ export default function TestPaymentPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Test Payment System</h1>
             <p className="text-gray-600">Create test successful payments for development and testing</p>
           </div>
+
+          {/* Authentication Check */}
+          {authLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Checking authentication...</p>
+            </div>
+          ) : !user ? (
+            <div className="text-center py-8">
+              <FaUser className="text-4xl text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Login Required</h2>
+              <p className="text-gray-600 mb-6">
+                You need to be logged in to test payments and see the complete post-payment experience.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/login"
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center"
+                >
+                  <FaSignInAlt className="mr-2" />
+                  Login to Continue
+                </Link>
+                <Link
+                  href="/signup"
+                  className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center"
+                >
+                  Create Account
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* User Info */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="font-semibold text-blue-800 mb-2">Logged in as:</h3>
+                <p className="text-blue-700">
+                  <FaUser className="inline mr-2" />
+                  {user.user_metadata?.full_name || user.user_metadata?.name || 'User'} ({user.email})
+                </p>
+                <p className="text-sm text-blue-600 mt-1">
+                  Test payments will be linked to your profile so you can see the complete post-payment experience.
+                </p>
+              </div>
 
           {/* Quick Test Button */}
           <div className="mb-8 p-6 bg-green-50 border border-green-200 rounded-xl">
@@ -306,6 +402,8 @@ export default function TestPaymentPage() {
               <li>• Perfect for testing the complete payment flow</li>
             </ul>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,16 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the user session with Supabase
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid authentication' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { 
       propertyId, 
       roomId, 
-      guestName = 'Test User',
-      guestEmail = 'test@example.com',
+      guestName = user.user_metadata?.full_name || user.user_metadata?.name || 'Test User',
+      guestEmail = user.email || 'test@example.com',
       guestPhone = '+919876543210',
-      amount = 2400 // Default test amount
+      amount = 2400, // Default test amount
+      userId = user.id // Use authenticated user ID
     } = body;
 
     console.log('🧪 Creating test successful payment...');
@@ -48,24 +81,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create test booking record
+    // Use anchored property ID - get from existing properties
+    const { data: properties } = await supabase
+      .from('properties')
+      .select('id')
+      .limit(1);
+    
+    const anchoredPropertyId = properties && properties.length > 0 ? properties[0].id : null;
+    
+    if (!anchoredPropertyId) {
+      throw new Error('No properties found in database. Please add properties first.');
+    }
+
+    // Create test booking record with anchored property ID
     const bookingData = {
-      id: testBookingId,
-      property_id: propertyId || 1,
+      property_id: anchoredPropertyId, // Use anchored property ID
       room_id: roomId || 1,
+      user_id: userId, // Link to authenticated user
       guest_name: guestName,
       guest_email: guestEmail,
       guest_phone: guestPhone,
+      sharing_type: 'Single',
+      price_per_person: amount * 4, // Monthly rent
+      security_deposit_per_person: amount, // Security deposit
+      total_amount: amount * 5, // Total amount (monthly rent + security)
+      amount_paid: amount, // 20% paid upfront
+      amount_due: amount * 4, // Remaining 80%
+      payment_method: 'razorpay',
+      payment_status: 'partial', // 20% paid, 80% due
+      booking_status: 'confirmed',
+      payment_reference: testPaymentId,
+      payment_date: new Date().toISOString(),
       check_in_date: new Date().toISOString().split('T')[0],
       check_out_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days later
-      total_amount: amount * 5, // Total amount (20% paid upfront)
-      paid_amount: amount,
-      payment_status: 'completed',
-      booking_status: 'confirmed',
-      payment_id: testPaymentId,
-      razorpay_order_id: testOrderId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      notes: `Test booking created for user ${userId}. Payment ID: ${testPaymentId}`,
     };
 
     // Insert test booking
@@ -116,10 +165,11 @@ export async function POST(request: NextRequest) {
       notificationStatus.ownerMessageSent = false;
     }
 
-    // Generate success page URL
+    // Generate success page URL using actual booking ID
+    const actualBookingId = booking?.id || testBookingId;
     const successUrl = new URL('/payment-success', request.nextUrl.origin);
     successUrl.searchParams.set('paymentId', testPaymentId);
-    successUrl.searchParams.set('bookingId', testBookingId);
+    successUrl.searchParams.set('bookingId', actualBookingId.toString());
     successUrl.searchParams.set('amount', amount.toString());
     successUrl.searchParams.set('propertyName', propertyName);
     successUrl.searchParams.set('guestName', guestName);
@@ -132,7 +182,7 @@ export async function POST(request: NextRequest) {
       data: {
         paymentId: testPaymentId,
         orderId: testOrderId,
-        bookingId: testBookingId,
+        bookingId: actualBookingId,
         amount,
         propertyName,
         roomNumber,
@@ -155,22 +205,79 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Quick test payment with default values
-  const testData = {
-    propertyId: 1,
-    roomId: 1,
-    guestName: 'John Doe',
-    guestEmail: 'john.doe@example.com',
-    guestPhone: '+919876543210',
-    amount: 2400
-  };
+  try {
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
-  // Create a new request with POST method
-  const testRequest = new NextRequest(request.url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(testData)
-  });
+    // Verify the user session with Supabase
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
 
-  return POST(testRequest);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid authentication' },
+        { status: 401 }
+      );
+    }
+
+    // Get anchored property ID for quick test
+    const { data: properties } = await supabaseAuth
+      .from('properties')
+      .select('id')
+      .limit(1);
+
+    const anchoredPropertyId = properties && properties.length > 0 ? properties[0].id : null;
+    
+    if (!anchoredPropertyId) {
+      return NextResponse.json({
+        success: false,
+        error: 'No properties found in database. Please add properties first.'
+      }, { status: 400 });
+    }
+
+    // Quick test payment with anchored property ID
+    const testData = {
+      propertyId: anchoredPropertyId,
+      roomId: 1,
+      guestName: user.user_metadata?.full_name || user.user_metadata?.name || 'Test User',
+      guestEmail: user.email || 'test@example.com',
+      guestPhone: '+919876543210',
+      amount: 2400,
+      userId: user.id
+    };
+
+    // Create a new request with POST method and auth header
+    const testRequest = new NextRequest(request.url, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      },
+      body: JSON.stringify(testData)
+    });
+
+    return POST(testRequest);
+  } catch (error: any) {
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Failed to create quick test payment'
+    }, { status: 500 });
+  }
 }

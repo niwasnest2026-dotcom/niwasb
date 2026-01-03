@@ -37,6 +37,9 @@ export default function AddProperty() {
     google_maps_url: '',
     latitude: '',
     longitude: '',
+    owner_name: '',
+    owner_phone: '',
+    payment_instructions: '',
     verified: false,
     instant_book: false,
     secure_booking: false,
@@ -108,34 +111,46 @@ export default function AddProperty() {
     setSubmitting(true);
 
     try {
+      // Prepare property data with automatic anchoring
+      const propertyData = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        area: formData.area,
+        price: parseFloat(formData.price),
+        security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : parseFloat(formData.price) * 2, // Auto-anchor: 2x rent if not specified
+        available_months: formData.available_months ? parseInt(formData.available_months) : 12, // Auto-anchor: 12 months default
+        property_type: formData.property_type,
+        gender_preference: formData.gender_preference,
+        featured_image: formData.featured_image || null,
+        rating: formData.rating ? parseFloat(formData.rating) : 4.0, // Auto-anchor: 4.0 default rating
+        google_maps_url: formData.google_maps_url || null,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        // Auto-anchor owner details - ensure they're always provided
+        owner_name: formData.owner_name.trim() || 'Property Owner',
+        owner_phone: formData.owner_phone.trim() || '+91 9876543210',
+        payment_instructions: formData.payment_instructions.trim() || 'Please contact the owner for payment details of the remaining amount.',
+        // Auto-anchor property features
+        verified: formData.verified,
+        instant_book: formData.instant_book,
+        secure_booking: formData.secure_booking,
+        is_available: true, // Auto-anchor: Always available when created
+        // Auto-anchor timestamps
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { data: property, error: propertyError } = await supabase
         .from('properties')
-        .insert([{
-          name: formData.name,
-          description: formData.description,
-          address: formData.address,
-          city: formData.city,
-          area: formData.area,
-          price: parseFloat(formData.price),
-          security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
-          available_months: formData.available_months ? parseInt(formData.available_months) : null,
-          property_type: formData.property_type,
-          gender_preference: formData.gender_preference,
-          featured_image: formData.featured_image || null,
-          rating: formData.rating ? parseFloat(formData.rating) : null,
-          google_maps_url: formData.google_maps_url || null,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-          verified: formData.verified,
-          instant_book: formData.instant_book,
-          secure_booking: formData.secure_booking,
-          is_available: formData.is_available,
-        }] as any)
+        .insert([propertyData] as any)
         .select()
         .single();
 
       if (propertyError) throw propertyError;
 
+      // Auto-anchor amenities if selected
       if (selectedAmenities.length > 0 && property) {
         const amenityInserts = selectedAmenities.map(amenityId => ({
           property_id: (property as any).id,
@@ -149,7 +164,33 @@ export default function AddProperty() {
         if (amenitiesError) throw amenitiesError;
       }
 
-      alert('Property added successfully!');
+      // Auto-anchor: Create default room if none exist
+      const { error: roomError } = await supabase
+        .from('property_rooms')
+        .insert([{
+          property_id: (property as any).id,
+          room_number: 'Room 1',
+          room_type: 'Standard',
+          sharing_type: 'Single',
+          price_per_person: parseFloat(formData.price),
+          security_deposit_per_person: propertyData.security_deposit,
+          total_beds: 1,
+          available_beds: 1,
+          floor_number: 1,
+          has_attached_bathroom: true,
+          has_balcony: false,
+          has_ac: false,
+          room_size_sqft: 100,
+          description: 'Standard room with basic amenities',
+          is_available: true
+        }] as any);
+
+      if (roomError) {
+        console.warn('Failed to create default room:', roomError);
+        // Don't fail the entire operation for room creation
+      }
+
+      alert('Property added successfully with automatic anchoring!');
       router.push('/admin/properties');
     } catch (error) {
       console.error('Error adding property:', error);
@@ -402,11 +443,11 @@ export default function AddProperty() {
                 onChange={handleChange}
                 min="0"
                 step="1"
-                placeholder="Leave empty for 2x monthly rent"
+                placeholder="Auto-anchored to 2x monthly rent"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <p className="text-xs text-gray-500 mt-1">
-                If not specified, defaults to 2x monthly rent (₹{formData.price ? (parseFloat(formData.price) * 2).toLocaleString() : '0'})
+                🔗 Auto-anchored: Defaults to 2x monthly rent (₹{formData.price ? (parseFloat(formData.price) * 2).toLocaleString() : '0'}) if not specified
               </p>
             </div>
           </div>
@@ -424,11 +465,11 @@ export default function AddProperty() {
                 min="1"
                 max="60"
                 step="1"
-                placeholder="e.g., 12 for 1 year"
+                placeholder="Auto-anchored to 12 months"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <p className="text-xs text-gray-500 mt-1">
-                How many months is this property available for booking?
+                🔗 Auto-anchored: Defaults to 12 months if not specified
               </p>
             </div>
 
@@ -444,8 +485,12 @@ export default function AddProperty() {
                 min="0"
                 max="5"
                 step="0.1"
+                placeholder="Auto-anchored to 4.0"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                🔗 Auto-anchored: Defaults to 4.0 rating if not specified
+              </p>
             </div>
           </div>
 
@@ -461,6 +506,85 @@ export default function AddProperty() {
               placeholder="https://example.com/image.jpg"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
+          </div>
+
+          {/* Owner Details Section */}
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Owner Details (Shared After Booking Confirmation)
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              These details will only be shared with users after successful payment confirmation. They will not be visible on the website publicly.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="owner_name"
+                  value={formData.owner_name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Auto-anchored to 'Property Owner' if empty"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  🔗 Auto-anchored: Defaults to 'Property Owner' if not provided
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  name="owner_phone"
+                  value={formData.owner_phone}
+                  onChange={handleChange}
+                  required
+                  placeholder="Auto-anchored to default number if empty"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  🔗 Auto-anchored: Defaults to '+91 9876543210' if not provided
+                </p>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Instructions for Remaining Amount
+                </label>
+                <textarea
+                  name="payment_instructions"
+                  value={formData.payment_instructions}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Auto-anchored to default instructions if empty"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  🔗 Auto-anchored: Defaults to generic payment instructions if not provided
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-white border border-orange-200 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">🔗 Auto-Anchoring Features:</h4>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                <li>All properties are automatically anchored with default values</li>
+                <li>Owner details are auto-filled if not provided</li>
+                <li>Default room is created automatically</li>
+                <li>Property is marked as available by default</li>
+                <li>Timestamps are automatically managed</li>
+              </ul>
+            </div>
           </div>
 
           <div>

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Sample properties data
+    // Auto-anchored sample properties with all required fields
     const sampleProperties = [
       {
         name: 'Sunrise PG for Students',
@@ -28,15 +28,21 @@ export async function POST(request: NextRequest) {
         city: 'Bangalore',
         area: 'MG Road',
         price: 12000,
-        security_deposit: 24000,
-        available_months: 12,
+        security_deposit: 24000, // Auto-anchored: 2x rent
+        available_months: 12, // Auto-anchored: 12 months
         property_type: 'PG',
         gender_preference: 'boys',
+        owner_name: 'Rajesh Kumar',
+        owner_phone: '+91 98765 43210',
+        payment_instructions: 'Please pay the remaining amount via UPI: rajesh@paytm or Bank Transfer:\nAccount No: 1234567890\nIFSC: SBIN0001234\nAccount Name: Rajesh Kumar',
         featured_image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&h=600&fit=crop',
-        rating: 4.5,
+        rating: 4.5, // Auto-anchored rating
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true, // Auto-anchored: always available
+        created_at: new Date().toISOString(), // Auto-anchored timestamp
+        updated_at: new Date().toISOString() // Auto-anchored timestamp
       },
       {
         name: 'Green Valley PG',
@@ -45,15 +51,21 @@ export async function POST(request: NextRequest) {
         city: 'Bangalore',
         area: 'Koramangala',
         price: 10000,
-        security_deposit: 20000,
-        available_months: 12,
+        security_deposit: 20000, // Auto-anchored: 2x rent
+        available_months: 12, // Auto-anchored: 12 months
         property_type: 'PG',
         gender_preference: 'girls',
+        owner_name: 'Priya Sharma',
+        owner_phone: '+91 87654 32109',
+        payment_instructions: 'Remaining payment can be made through:\n1. Google Pay: priya@gpay\n2. PhonePe: 8765432109\n3. Cash on arrival\n\nPlease confirm payment method before check-in.',
         featured_image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
-        rating: 4.2,
+        rating: 4.2, // Auto-anchored rating
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true, // Auto-anchored: always available
+        created_at: new Date().toISOString(), // Auto-anchored timestamp
+        updated_at: new Date().toISOString() // Auto-anchored timestamp
       },
       {
         name: 'Elite Residency',
@@ -62,15 +74,21 @@ export async function POST(request: NextRequest) {
         city: 'Bangalore',
         area: 'Brigade Road',
         price: 15000,
-        security_deposit: 30000,
-        available_months: 6,
+        security_deposit: 30000, // Auto-anchored: 2x rent
+        available_months: 6, // Custom duration
         property_type: 'Flat',
         gender_preference: 'any',
+        owner_name: 'Amit Patel',
+        owner_phone: '+91 76543 21098',
+        payment_instructions: 'Payment Options for Remaining Amount:\n• UPI: amit.patel@okaxis\n• NEFT/RTGS: Account Details will be shared\n• Paytm: 7654321098\n\nKindly share payment screenshot for confirmation.',
         featured_image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-        rating: 4.8,
+        rating: 4.8, // Auto-anchored rating
         verified: true,
         instant_book: true,
-        secure_booking: true
+        secure_booking: true,
+        is_available: true, // Auto-anchored: always available
+        created_at: new Date().toISOString(), // Auto-anchored timestamp
+        updated_at: new Date().toISOString() // Auto-anchored timestamp
       }
     ];
 

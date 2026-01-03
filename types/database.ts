@@ -32,6 +32,9 @@ export interface Database {
           latitude: number | null
           longitude: number | null
           gender_preference: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          payment_instructions: string | null
           created_at: string | null
         }
         Insert: {
@@ -56,6 +59,9 @@ export interface Database {
           latitude?: number | null
           longitude?: number | null
           gender_preference?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_instructions?: string | null
           created_at?: string | null
         }
         Update: {
@@ -80,6 +86,9 @@ export interface Database {
           latitude?: number | null
           longitude?: number | null
           gender_preference?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_instructions?: string | null
           created_at?: string | null
         }
       }

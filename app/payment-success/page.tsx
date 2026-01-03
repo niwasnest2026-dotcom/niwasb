@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaCheckCircle, FaHome, FaReceipt, FaWhatsapp, FaTimes } from 'react-icons/fa';
+import OwnerDetailsModal from '@/components/OwnerDetailsModal';
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [notificationStatus, setNotificationStatus] = useState<any>(null);
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
 
   const paymentId = searchParams.get('paymentId');
   const bookingId = searchParams.get('bookingId');
@@ -37,6 +39,13 @@ export default function PaymentSuccessPage() {
     if (storedNotifications) {
       setNotificationStatus(JSON.parse(storedNotifications));
       localStorage.removeItem('notificationsSent'); // Clean up
+    }
+
+    // Auto-show owner details modal if booking ID exists
+    if (bookingId) {
+      setTimeout(() => {
+        setShowOwnerModal(true);
+      }, 2000); // Show after 2 seconds
     }
   }, [paymentId, bookingId, amount, propertyName, guestName, router]);
 
@@ -155,6 +164,15 @@ export default function PaymentSuccessPage() {
               <li>• You will receive a confirmation email shortly</li>
               <li>• Property owner will contact you within 24 hours</li>
               <li>• Keep this payment ID for your records</li>
+              {bookingId && (
+                <li>• <button 
+                    onClick={() => setShowOwnerModal(true)}
+                    className="text-orange-600 hover:text-orange-700 font-semibold underline"
+                  >
+                    Click here to view owner contact details
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -229,6 +247,15 @@ Please confirm my booking and provide next steps.`;
             </p>
           </div>
         </div>
+
+        {/* Owner Details Modal */}
+        {bookingId && (
+          <OwnerDetailsModal
+            isOpen={showOwnerModal}
+            onClose={() => setShowOwnerModal(false)}
+            bookingId={bookingId}
+          />
+        )}
       </div>
     </div>
   );

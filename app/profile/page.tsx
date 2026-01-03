@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaUser, FaEnvelope, FaPhone, FaLock } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaEnvelope, FaPhone, FaLock, FaHome, FaCalendarAlt, FaBed, FaRupeeSign } from 'react-icons/fa';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showOwnerDetails, setShowOwnerDetails] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -434,10 +435,179 @@ export default function ProfilePage() {
                 >
                   My Favorites
                 </Link>
+                <button
+                  onClick={() => setShowOwnerDetails(!showOwnerDetails)}
+                  className="flex items-center justify-center px-6 py-3 border-2 font-semibold rounded-lg transition-all hover:shadow-lg min-h-[48px]"
+                  style={{ borderColor: '#FF6711', color: '#FF6711' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#FF6711';
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#FF6711';
+                  }}
+                >
+                  {showOwnerDetails ? 'Hide' : 'View'} Owner Details
+                </button>
               </div>
             </div>
+
+            {/* Owner Details Section */}
+            {showOwnerDetails && (
+              <OwnerDetailsSection userId={user.id} />
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Owner Details Section Component
+function OwnerDetailsSection({ userId }: { userId: string }) {
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchConfirmedBookings();
+  }, [userId]);
+
+  const fetchConfirmedBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          properties!inner(
+            id,
+            name,
+            owner_name,
+            owner_phone,
+            payment_instructions
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('payment_status', 'partial')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-8 pt-8 border-t border-gray-200">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (bookings.length === 0) {
+    return (
+      <div className="mt-8 pt-8 border-t border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Owner Contact Details</h3>
+        <div className="bg-gray-50 rounded-lg p-6 text-center">
+          <p className="text-gray-600">No confirmed bookings found. Owner details will appear here after successful payment.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 pt-8 border-t border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Owner Contact Details</h3>
+      <div className="space-y-4">
+        {bookings.map((booking) => {
+          const property = (booking as any).properties;
+          return (
+            <div key={booking.id} className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center">
+                    <FaHome className="mr-2 text-orange-600" />
+                    {property.name}
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm">
+                        <FaUser className="mr-2 text-orange-600 w-4" />
+                        <span className="text-gray-600">Owner:</span>
+                        <span className="ml-2 font-medium">{property.owner_name}</span>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <FaPhone className="mr-2 text-orange-600 w-4" />
+                        <span className="text-gray-600">Phone:</span>
+                        <span className="ml-2 font-medium">{property.owner_phone}</span>
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <FaBed className="mr-2 text-orange-600 w-4" />
+                        <span className="text-gray-600">Room:</span>
+                        <span className="ml-2 font-medium">{booking.sharing_type}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm">
+                        <FaRupeeSign className="mr-2 text-orange-600 w-4" />
+                        <span className="text-gray-600">Amount Due:</span>
+                        <span className="ml-2 font-bold text-orange-600">₹{booking.amount_due.toLocaleString()}</span>
+                      </div>
+                      {booking.check_in_date && (
+                        <div className="flex items-center text-sm">
+                          <FaCalendarAlt className="mr-2 text-orange-600 w-4" />
+                          <span className="text-gray-600">Check-in:</span>
+                          <span className="ml-2 font-medium">
+                            {new Date(booking.check_in_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {property.payment_instructions && (
+                    <div className="bg-white border border-orange-200 rounded-lg p-3 mb-4">
+                      <h5 className="font-medium text-gray-900 mb-2">Payment Instructions:</h5>
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {property.payment_instructions}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:ml-4">
+                  <button
+                    onClick={() => {
+                      const message = `Hi, I have confirmed my booking for ${property.name}. 
+
+Booking ID: ${booking.id}
+Room Type: ${booking.sharing_type}
+Remaining Amount: ₹${booking.amount_due.toLocaleString()}
+
+Please let me know the payment details and check-in process.`;
+                      
+                      const whatsappUrl = `https://wa.me/${property.owner_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    className="w-full lg:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <FaPhone className="mr-2" />
+                    Contact Owner
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
