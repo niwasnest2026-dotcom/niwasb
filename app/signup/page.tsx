@@ -154,8 +154,8 @@ export default function SignupPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block mb-8">
-            <h1 className="text-3xl font-bold text-primary">
-              NiwasNest
+            <h1 className="text-3xl font-bold">
+              <span style={{ color: '#FF6711' }}>Niwas</span><span style={{ color: '#2D3748' }}>Nest</span>
             </h1>
           </Link>
           <h2 className="text-3xl font-bold text-neutral-900 mb-2">Create account</h2>

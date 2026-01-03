@@ -113,8 +113,8 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block mb-8">
-            <h1 className="text-3xl font-bold text-primary">
-              NiwasNest
+            <h1 className="text-3xl font-bold">
+              <span style={{ color: '#FF6711' }}>Niwas</span><span style={{ color: '#F7FAFC' }}>Nest</span>
             </h1>
           </Link>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
