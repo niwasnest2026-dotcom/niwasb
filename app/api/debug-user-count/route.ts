@@ -1,9 +1,27 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
   try {
     console.log('🔍 Debugging user count with admin client...');
+
+    // Create admin client if service role key is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceKey) {
+      return NextResponse.json({
+        success: false,
+        error: 'Service role key not configured. Cannot debug user count.'
+      }, { status: 400 });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Count total profiles using admin client
     const { data: profilesData, error: profilesError, count: profilesCount } = await supabaseAdmin

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaLock } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import RazorpayPayment from '@/components/RazorpayPayment';
 
 interface Property {

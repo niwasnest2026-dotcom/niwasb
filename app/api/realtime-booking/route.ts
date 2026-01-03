@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Real-time booking creation started');
+
+    // Create admin client if service role key is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    let supabaseAdmin;
+    if (serviceKey) {
+      supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    }
 
     const {
       razorpay_payment_id,
@@ -152,6 +166,14 @@ export async function POST(request: NextRequest) {
       amount_paid: amountPaid,
       amount_due: amountDue
     });
+
+    // Check if admin client is available
+    if (!supabaseAdmin) {
+      return NextResponse.json({
+        success: false,
+        error: 'Service role key not configured. Cannot create booking.'
+      }, { status: 500 });
+    }
 
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
