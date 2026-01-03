@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get property details
-    const { data: property, error: propertyError } = await supabase
+    let { data: property, error: propertyError } = await supabase
       .from('properties')
       .select('*')
       .eq('id', booking_details.property_id)

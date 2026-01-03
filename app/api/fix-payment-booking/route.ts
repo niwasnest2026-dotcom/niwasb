@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Creating booking for payment:', paymentId);
 
     // Get the property (Kushal from the URL)
-    const { data: property, error: propertyError } = await supabase
+    let { data: property, error: propertyError } = await supabase
       .from('properties')
       .select('*')
       .ilike('name', '%kushal%')

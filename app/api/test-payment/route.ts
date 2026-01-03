@@ -100,10 +100,10 @@ export async function POST(request: NextRequest) {
       .eq('property_id', anchoredPropertyId)
       .limit(1);
 
-    let roomId = rooms && rooms.length > 0 ? rooms[0].id : null;
+    let selectedRoomId = rooms && rooms.length > 0 ? rooms[0].id : null;
 
     // If no room exists, create one
-    if (!roomId) {
+    if (!selectedRoomId) {
       const { data: newRoom, error: roomError } = await supabase
         .from('property_rooms')
         .insert([{
@@ -127,14 +127,14 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!roomError && newRoom) {
-        roomId = newRoom.id;
+        selectedRoomId = newRoom.id;
       }
     }
 
     // Create test booking record with proper room ID
     const bookingData = {
       property_id: anchoredPropertyId,
-      room_id: roomId || 1, // Use actual room ID or fallback
+      room_id: selectedRoomId || roomId || 1, // Use actual room ID or fallback
       user_id: userId, // Link to authenticated user
       guest_name: guestName,
       guest_email: guestEmail,
