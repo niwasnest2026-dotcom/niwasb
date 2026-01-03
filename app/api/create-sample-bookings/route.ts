@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST() {
   try {
     console.log('🔄 Creating sample bookings for existing users...');
+
+    // Create admin client if service role key is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceKey) {
+      return NextResponse.json({
+        success: false,
+        error: 'Service role key not configured. Cannot create sample bookings.'
+      }, { status: 400 });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Get all existing users who don't have bookings
     const { data: profiles, error: profilesError } = await supabaseAdmin

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +11,20 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
+    }
+
+    // Create admin client if service role key is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    let supabaseAdmin;
+    if (serviceKey) {
+      supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
     }
 
     // Verify the user session with Supabase
@@ -143,6 +156,17 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('📝 Creating booking with data:', bookingData);
+
+      // Check if admin client is available
+      if (!supabaseAdmin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service role key not configured. Cannot create booking.'
+          },
+          { status: 500 }
+        );
+      }
 
       // Start a transaction-like operation using admin client
       const { data: bookingResult, error: bookingError } = await supabaseAdmin

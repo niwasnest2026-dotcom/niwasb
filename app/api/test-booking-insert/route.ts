@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST() {
   try {
     console.log('🧪 Testing booking insert with minimal data...');
+
+    // Create admin client if service role key is available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!serviceKey) {
+      return NextResponse.json({
+        success: false,
+        error: 'Service role key not configured. Cannot test booking insertion.'
+      }, { status: 400 });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Test 1: Try with minimal required fields
     const minimalBooking = {
