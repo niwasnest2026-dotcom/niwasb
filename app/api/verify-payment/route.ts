@@ -61,8 +61,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If booking_details is provided, create booking in database
+    // If booking_details is provided, create real-time booking
     if (booking_details) {
+      console.log('🔄 Creating real-time booking...');
+      
+      try {
+        // Call real-time booking API
+        const realtimeResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/api/realtime-booking`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
+            booking_details,
+            user_id: user.id
+          }),
+        });
+
+        const realtimeData = await realtimeResponse.json();
+        
+        if (realtimeData.success) {
+          console.log('✅ Real-time booking created:', realtimeData.data.booking_id);
+          
+          return NextResponse.json({
+            success: true,
+            message: 'Payment verified and real-time booking created successfully',
+            booking_id: realtimeData.data.booking_id,
+            owner_details: realtimeData.data.owner_details
+          });
+        } else {
+          console.error('❌ Real-time booking failed:', realtimeData.error);
+          // Continue with fallback booking creation
+        }
+      } catch (realtimeError) {
+        console.error('❌ Real-time booking API error:', realtimeError);
+        // Continue with fallback booking creation
+      }
+
+      // Fallback: Create booking directly (legacy method)
+      console.log('🔄 Creating fallback booking...');
+      
       // Add user ID to booking details for security
       const bookingData: any = {
         property_id: booking_details.property_id,
@@ -78,9 +119,8 @@ export async function POST(request: NextRequest) {
         payment_method: 'razorpay',
         payment_status: 'partial', // 20% paid
         booking_status: 'confirmed',
-        payment_reference: razorpay_payment_id,
         payment_date: new Date().toISOString(),
-        notes: `Booking made through Razorpay. Order ID: ${razorpay_order_id}. User ID: ${user.id}.`
+        notes: `Booking made through Razorpay. Payment ID: ${razorpay_payment_id}. Order ID: ${razorpay_order_id}. User ID: ${user.id}.`
       };
 
       // Add optional fields only if they exist and are provided
@@ -89,7 +129,6 @@ export async function POST(request: NextRequest) {
       }
       
       if (booking_details.duration) {
-        bookingData.duration_months = parseInt(booking_details.duration);
         bookingData.notes += ` Duration: ${booking_details.duration} months.`;
       }
       

@@ -15,6 +15,20 @@ interface RazorpayPaymentProps {
   roomNumber: string;
   onSuccess: (paymentId: string) => void;
   onError: (error: string) => void;
+  // Optional booking details for real-time booking creation
+  bookingDetails?: {
+    property_id: string;
+    room_id?: string;
+    sharing_type: string;
+    price_per_person: number;
+    security_deposit_per_person: number;
+    total_amount: number;
+    amount_paid: number;
+    amount_due: number;
+    duration?: string;
+    check_in?: string;
+    check_out?: string;
+  };
 }
 
 declare global {
@@ -33,6 +47,7 @@ export default function RazorpayPayment({
   roomNumber,
   onSuccess,
   onError,
+  bookingDetails,
 }: RazorpayPaymentProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -108,6 +123,23 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
+            // Prepare booking details if provided
+            const verifyPayload: any = {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            };
+
+            // Add booking details if provided (for real-time booking creation)
+            if (bookingDetails) {
+              verifyPayload.booking_details = {
+                ...bookingDetails,
+                guest_name: guestName,
+                guest_email: guestEmail,
+                guest_phone: guestPhone,
+              };
+            }
+
             // Verify payment with authentication
             const verifyResponse = await fetch('/api/verify-payment', {
               method: 'POST',
@@ -115,11 +147,7 @@ export default function RazorpayPayment({
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`,
               },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
+              body: JSON.stringify(verifyPayload),
             });
 
             const verifyData = await verifyResponse.json();

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Use anchored property ID - get from existing properties
+    // Get the first available property and room
     const { data: properties } = await supabase
       .from('properties')
       .select('id')
@@ -93,10 +93,48 @@ export async function POST(request: NextRequest) {
       throw new Error('No properties found in database. Please add properties first.');
     }
 
-    // Create test booking record with anchored property ID
+    // Get or create a room for this property
+    let { data: rooms } = await supabase
+      .from('property_rooms')
+      .select('id')
+      .eq('property_id', anchoredPropertyId)
+      .limit(1);
+
+    let roomId = rooms && rooms.length > 0 ? rooms[0].id : null;
+
+    // If no room exists, create one
+    if (!roomId) {
+      const { data: newRoom, error: roomError } = await supabase
+        .from('property_rooms')
+        .insert([{
+          property_id: anchoredPropertyId,
+          room_number: 'Room 1',
+          room_type: 'Standard',
+          sharing_type: 'Single',
+          price_per_person: amount * 4,
+          security_deposit_per_person: amount,
+          total_beds: 1,
+          available_beds: 1,
+          floor_number: 1,
+          has_attached_bathroom: true,
+          has_balcony: false,
+          has_ac: false,
+          room_size_sqft: 100,
+          description: 'Standard room with basic amenities',
+          is_available: true
+        }])
+        .select()
+        .single();
+
+      if (!roomError && newRoom) {
+        roomId = newRoom.id;
+      }
+    }
+
+    // Create test booking record with proper room ID
     const bookingData = {
-      property_id: anchoredPropertyId, // Use anchored property ID
-      room_id: roomId || 1,
+      property_id: anchoredPropertyId,
+      room_id: roomId || 1, // Use actual room ID or fallback
       user_id: userId, // Link to authenticated user
       guest_name: guestName,
       guest_email: guestEmail,
@@ -117,6 +155,8 @@ export async function POST(request: NextRequest) {
       notes: `Test booking created for user ${userId}. Payment ID: ${testPaymentId}`,
     };
 
+    console.log('🔧 Creating booking with data:', bookingData);
+
     // Insert test booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -126,8 +166,10 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) {
       console.error('❌ Test booking creation error:', bookingError);
-      // Continue anyway for testing
+      throw new Error('Failed to create booking: ' + bookingError.message);
     }
+
+    console.log('✅ Booking created successfully:', booking.id);
 
     // Simulate sending WhatsApp notifications
     const notificationStatus = {

@@ -322,7 +322,7 @@ export interface Database {
         Row: {
           id: string
           property_id: string
-          room_id: string
+          room_id: string | null
           user_id: string | null
           guest_name: string
           guest_email: string
@@ -347,7 +347,7 @@ export interface Database {
         Insert: {
           id?: string
           property_id: string
-          room_id: string
+          room_id?: string | null
           user_id?: string | null
           guest_name: string
           guest_email: string
@@ -372,7 +372,7 @@ export interface Database {
         Update: {
           id?: string
           property_id?: string
-          room_id?: string
+          room_id?: string | null
           user_id?: string | null
           guest_name?: string
           guest_email?: string
@@ -391,6 +391,41 @@ export interface Database {
           booking_date?: string | null
           payment_date?: string | null
           notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          type: string
+          title: string
+          message: string | null
+          data: Json | null
+          user_id: string | null
+          is_read: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          type: string
+          title: string
+          message?: string | null
+          data?: Json | null
+          user_id?: string | null
+          is_read?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          type?: string
+          title?: string
+          message?: string | null
+          data?: Json | null
+          user_id?: string | null
+          is_read?: boolean | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -416,6 +451,7 @@ export type Favorite = Database['public']['Tables']['favorites']['Row']
 export type PropertyRoom = Database['public']['Tables']['property_rooms']['Row']
 export type RoomImage = Database['public']['Tables']['room_images']['Row']
 export type Booking = Database['public']['Tables']['bookings']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
 
 export interface PropertyWithDetails extends Property {
   amenities?: Amenity[]
