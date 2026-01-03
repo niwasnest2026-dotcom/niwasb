@@ -37,7 +37,9 @@ export default function Home() {
       </section>
 
       {/* Available Properties */}
-      <section className="py-20 px-4" style={{ backgroundColor: 'rgba(99, 179, 237, 0.3)' }}>
+      <section className="py-20 px-4" style={{ 
+        background: 'linear-gradient(135deg, #FFD082 0%, #FFF4EC 100%)'
+      }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black mb-6" style={{ color: '#2D3748' }}>
@@ -52,14 +54,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why Choose Section with Sky Blue Background */}
-      <section className="py-20 px-4" style={{ backgroundColor: '#63B3ED' }}>
+      {/* Why Choose Section with Orange Gradient */}
+      <section className="py-20 px-4" style={{ 
+        background: 'linear-gradient(135deg, #E55A0F 0%, #FF6711 100%)'
+      }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black mb-6" style={{ color: '#2D3748' }}>
+            <h2 className="text-4xl md:text-5xl font-black mb-6" style={{ color: '#F7FAFC' }}>
               Why Choose Niwas Nest?
             </h2>
-            <p className="text-xl max-w-3xl mx-auto font-medium leading-relaxed" style={{ color: 'rgba(45, 55, 72, 0.8)' }}>
+            <p className="text-xl max-w-3xl mx-auto font-medium leading-relaxed" style={{ color: 'rgba(247, 250, 252, 0.9)' }}>
               Modern, comfortable, and ready for you.
             </p>
           </div>
@@ -68,9 +72,9 @@ export default function Home() {
             {/* Community Vibes */}
             <div className="p-8 rounded-3xl text-center hover:shadow-2xl transition-all duration-500 hover:scale-105 modern-card">
               <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ 
-                backgroundColor: '#FFD082'
+                backgroundColor: '#FFF4EC'
               }}>
-                <FaUsers className="text-3xl" style={{ color: '#2D3748' }} />
+                <FaUsers className="text-3xl" style={{ color: '#E55A0F' }} />
               </div>
               <h3 className="text-2xl font-bold mb-4" style={{ color: '#2D3748' }}>Community Vibes</h3>
               <p className="text-lg font-medium leading-relaxed" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
@@ -81,9 +85,9 @@ export default function Home() {
             {/* All-Inclusive */}
             <div className="p-8 rounded-3xl text-center hover:shadow-2xl transition-all duration-500 hover:scale-105 modern-card">
               <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ 
-                backgroundColor: '#FFD082'
+                backgroundColor: '#FFF4EC'
               }}>
-                <FaHome className="text-3xl" style={{ color: '#2D3748' }} />
+                <FaHome className="text-3xl" style={{ color: '#E55A0F' }} />
               </div>
               <h3 className="text-2xl font-bold mb-4" style={{ color: '#2D3748' }}>All-Inclusive</h3>
               <p className="text-lg font-medium leading-relaxed" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
@@ -94,9 +98,9 @@ export default function Home() {
             {/* Great Amenities */}
             <div className="p-8 rounded-3xl text-center hover:shadow-2xl transition-all duration-500 hover:scale-105 modern-card">
               <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg" style={{ 
-                backgroundColor: '#FFD082'
+                backgroundColor: '#FFF4EC'
               }}>
-                <FaShieldAlt className="text-3xl" style={{ color: '#2D3748' }} />
+                <FaShieldAlt className="text-3xl" style={{ color: '#E55A0F' }} />
               </div>
               <h3 className="text-2xl font-bold mb-4" style={{ color: '#2D3748' }}>Great Amenities</h3>
               <p className="text-lg font-medium leading-relaxed" style={{ color: 'rgba(45, 55, 72, 0.7)' }}>
@@ -108,7 +112,11 @@ export default function Home() {
       </section>
 
       {/* Most Popular Facilities */}
-      <section className="py-20 px-4" style={{ backgroundColor: '#F7FAFC' }}>
+      <section className="py-20 px-4" style={{ 
+        background: 'linear-gradient(135deg, #FFF4EC 0%, #FFD082 50%, #FFF4EC 100%)',
+        backgroundSize: '400% 400%',
+        animation: 'gradientShift 15s ease infinite'
+      }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black mb-6" style={{ color: '#2D3748' }}>
@@ -121,20 +129,24 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Fully Furnished Rooms */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ backgroundColor: '#FFD082' }}>
+            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ 
+              background: 'linear-gradient(135deg, #FF6711 0%, #E55A0F 100%)'
+            }}>
               <div className="p-8 text-center">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(45, 55, 72, 0.1)' }}>
-                  <FaHome className="text-3xl" style={{ color: '#2D3748' }} />
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(255, 244, 236, 0.2)' }}>
+                  <FaHome className="text-3xl" style={{ color: '#FFF4EC' }} />
                 </div>
-                <h3 className="text-2xl font-bold mb-4" style={{ color: '#2D3748' }}>Fully Furnished Rooms</h3>
-                <p className="text-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.8)' }}>
+                <h3 className="text-2xl font-bold mb-4" style={{ color: '#FFF4EC' }}>Fully Furnished Rooms</h3>
+                <p className="text-lg font-medium" style={{ color: 'rgba(255, 244, 236, 0.9)' }}>
                   Modern, comfortable and ready for you.
                 </p>
               </div>
             </div>
 
             {/* Awesome Gym */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ backgroundColor: '#90CDF4' }}>
+            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ 
+              background: 'linear-gradient(135deg, #FFD082 0%, #FF6711 100%)'
+            }}>
               <div className="p-8 text-center">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(45, 55, 72, 0.1)' }}>
                   <FaDumbbell className="text-3xl" style={{ color: '#2D3748' }} />
@@ -147,10 +159,12 @@ export default function Home() {
             </div>
 
             {/* Study Lounge */}
-            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ backgroundColor: '#FFF4EC' }}>
+            <div className="relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105" style={{ 
+              background: 'linear-gradient(135deg, #FFF4EC 0%, #FFD082 100%)'
+            }}>
               <div className="p-8 text-center">
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'rgba(45, 55, 72, 0.1)' }}>
-                  <FaWifi className="text-3xl" style={{ color: '#2D3748' }} />
+                  <FaWifi className="text-3xl" style={{ color: '#E55A0F' }} />
                 </div>
                 <h3 className="text-2xl font-bold mb-4" style={{ color: '#2D3748' }}>Study Lounge</h3>
                 <p className="text-lg font-medium" style={{ color: 'rgba(45, 55, 72, 0.8)' }}>

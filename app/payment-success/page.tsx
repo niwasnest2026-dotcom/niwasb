@@ -50,7 +50,7 @@ export default function PaymentSuccessPage() {
 
   return (
     <div className="min-h-screen py-8 px-4" style={{ 
-      background: 'linear-gradient(135deg, #63B3ED 0%, #90CDF4 50%, #63B3ED 100%)',
+      background: 'linear-gradient(135deg, #FF6711 0%, #FFD082 50%, #FF6711 100%)',
       backgroundSize: '400% 400%',
       animation: 'gradientShift 20s ease infinite'
     }}>

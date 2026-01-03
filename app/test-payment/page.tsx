@@ -90,7 +90,7 @@ export default function TestPaymentPage() {
 
   return (
     <div className="min-h-screen py-8 px-4" style={{ 
-      background: 'linear-gradient(135deg, #63B3ED 0%, #90CDF4 50%, #63B3ED 100%)',
+      background: 'linear-gradient(135deg, #FF6711 0%, #FFD082 50%, #FF6711 100%)',
       backgroundSize: '400% 400%',
       animation: 'gradientShift 20s ease infinite'
     }}>
@@ -98,7 +98,7 @@ export default function TestPaymentPage() {
         <Link
           href="/"
           className="inline-flex items-center hover:underline mb-6"
-          style={{ color: '#FF6711' }}
+          style={{ color: '#FFF4EC' }}
         >
           <FaArrowLeft className="mr-2" />
           Back to Home
