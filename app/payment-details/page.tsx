@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaLock } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import RazorpayPayment from '@/components/RazorpayPayment';
 
 interface Property {
@@ -135,9 +136,7 @@ export default function PaymentDetailsPage() {
         payment_method: 'razorpay',
         payment_status: 'partial', // 20% paid
         booking_status: 'confirmed',
-        payment_reference: paymentId,
         payment_date: new Date().toISOString(),
-        duration_months: duration ? parseInt(duration) : null,
         check_in_date: checkIn || null,
         check_out_date: checkOut || null,
         notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
@@ -148,28 +147,42 @@ export default function PaymentDetailsPage() {
         (bookingData as any).room_id = selectedRoom.id;
       }
 
-      const { data: bookingResult, error: bookingError } = await supabase
-        .from('bookings')
-        .insert(bookingData as any)
-        .select()
-        .single();
+      // Get user session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Authentication session expired. Please login again.');
+      }
 
-      if (bookingError) {
-        throw bookingError;
+      // Create booking via API
+      const response = await fetch('/api/create-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create booking');
       }
 
       // Show success message and redirect
       alert(`🎉 Booking Confirmed! 
       
-Booking ID: ${(bookingResult as any)?.id || 'Generated'}
+Booking ID: ${result.booking_id}
 Payment ID: ${paymentId}
 Amount Paid: ₹${amountPaid.toLocaleString()}
 Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
 
 You will receive a confirmation email shortly.`);
 
-      // Redirect to home page
-      router.push('/');
+      // Redirect to payment success page with booking details
+      const successUrl = `/payment-success?paymentId=${paymentId}&bookingId=${result.booking_id}&amount=${amountPaid}&propertyName=${encodeURIComponent(property!.name)}&guestName=${encodeURIComponent(fullName!)}`;
+      router.push(successUrl);
 
     } catch (error: any) {
       console.error('Booking creation error:', error);

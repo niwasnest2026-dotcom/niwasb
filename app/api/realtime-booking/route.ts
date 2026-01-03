@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,14 +140,10 @@ export async function POST(request: NextRequest) {
       payment_method: 'razorpay',
       payment_status: 'partial',
       booking_status: 'confirmed',
-      payment_reference: razorpay_payment_id,
       payment_date: new Date().toISOString(),
       check_in_date: booking_details.check_in_date || new Date().toISOString().split('T')[0],
       check_out_date: booking_details.check_out_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      duration_months: booking_details.duration_months || 1,
-      notes: `Real-time booking created for payment ${razorpay_payment_id}. Order: ${razorpay_order_id}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      notes: `Real-time booking for payment ${razorpay_payment_id}, Order: ${razorpay_order_id}`
     };
 
     console.log('📝 Creating booking with data:', {
@@ -156,7 +153,7 @@ export async function POST(request: NextRequest) {
       amount_due: amountDue
     });
 
-    const { data: booking, error: bookingError } = await supabase
+    const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert(bookingData)
       .select()
@@ -171,11 +168,10 @@ export async function POST(request: NextRequest) {
 
     // Update room availability
     if (room && room.available_beds > 0) {
-      await supabase
+      await supabaseAdmin
         .from('property_rooms')
         .update({
-          available_beds: room.available_beds - 1,
-          updated_at: new Date().toISOString()
+          available_beds: room.available_beds - 1
         })
         .eq('id', room.id);
     }

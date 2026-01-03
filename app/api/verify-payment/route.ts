@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,11 +105,11 @@ export async function POST(request: NextRequest) {
       // Fallback: Create booking directly (legacy method)
       console.log('🔄 Creating fallback booking...');
       
-      // Add user ID to booking details for security
+      // Create booking with only fields that exist in database
       const bookingData: any = {
         property_id: booking_details.property_id,
         guest_name: booking_details.guest_name,
-        guest_email: booking_details.guest_email || user.email, // Use form email or fallback to user email
+        guest_email: booking_details.guest_email || user.email,
         guest_phone: booking_details.guest_phone,
         sharing_type: booking_details.sharing_type,
         price_per_person: booking_details.price_per_person,
@@ -117,19 +118,15 @@ export async function POST(request: NextRequest) {
         amount_paid: booking_details.amount_paid,
         amount_due: booking_details.amount_due,
         payment_method: 'razorpay',
-        payment_status: 'partial', // 20% paid
+        payment_status: 'partial',
         booking_status: 'confirmed',
         payment_date: new Date().toISOString(),
-        notes: `Booking made through Razorpay. Payment ID: ${razorpay_payment_id}. Order ID: ${razorpay_order_id}. User ID: ${user.id}.`
+        notes: `Payment ID: ${razorpay_payment_id}, Order: ${razorpay_order_id}, User: ${user.id}`
       };
 
       // Add optional fields only if they exist and are provided
       if (booking_details.room_id) {
         bookingData.room_id = booking_details.room_id;
-      }
-      
-      if (booking_details.duration) {
-        bookingData.notes += ` Duration: ${booking_details.duration} months.`;
       }
       
       if (booking_details.check_in) {
@@ -144,8 +141,10 @@ export async function POST(request: NextRequest) {
         bookingData.user_id = user.id;
       }
 
-      // Start a transaction-like operation
-      const { data: bookingResult, error: bookingError } = await supabase
+      console.log('📝 Creating booking with data:', bookingData);
+
+      // Start a transaction-like operation using admin client
+      const { data: bookingResult, error: bookingError } = await supabaseAdmin
         .from('bookings')
         .insert(bookingData)
         .select()
@@ -164,7 +163,7 @@ export async function POST(request: NextRequest) {
 
       // Update available beds count - decrease by 1 (only if room_id exists)
       if (bookingData.room_id) {
-        const { data: roomData, error: roomError } = await supabase
+        const { data: roomData, error: roomError } = await supabaseAdmin
           .from('property_rooms')
           .select('available_beds')
           .eq('id', bookingData.room_id)
@@ -172,11 +171,10 @@ export async function POST(request: NextRequest) {
 
         if (!roomError && roomData && roomData.available_beds > 0) {
           // Decrease available beds by 1
-          const { error: updateError } = await supabase
+          const { error: updateError } = await supabaseAdmin
             .from('property_rooms')
             .update({
-              available_beds: roomData.available_beds - 1,
-              updated_at: new Date().toISOString()
+              available_beds: roomData.available_beds - 1
             })
             .eq('id', bookingData.room_id);
 
