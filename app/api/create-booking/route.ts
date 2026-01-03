@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,8 +45,23 @@ export async function POST(request: NextRequest) {
       user_id: user.id
     };
 
+    // Create admin client if service role key is available
+    let adminClient = supabase;
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      );
+    }
+
     // Create booking using admin client (bypasses RLS)
-    const { data: bookingResult, error: bookingError } = await supabaseAdmin
+    const { data: bookingResult, error: bookingError } = await adminClient
       .from('bookings')
       .insert(finalBookingData)
       .select()
@@ -69,14 +83,14 @@ export async function POST(request: NextRequest) {
 
     // Update room availability if room_id exists
     if (finalBookingData.room_id) {
-      const { data: roomData, error: roomError } = await supabaseAdmin
+      const { data: roomData, error: roomError } = await adminClient
         .from('property_rooms')
         .select('available_beds')
         .eq('id', finalBookingData.room_id)
         .single();
 
       if (!roomError && roomData && roomData.available_beds > 0) {
-        await supabaseAdmin
+        await adminClient
           .from('property_rooms')
           .update({
             available_beds: roomData.available_beds - 1
