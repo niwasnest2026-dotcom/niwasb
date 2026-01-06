@@ -123,61 +123,17 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
-            // Always prepare booking details for every payment
-            const verifyPayload: any = {
+            // Simple payment verification - no complex booking details needed
+            const verifyPayload = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             };
 
-            // Always include booking details (either provided or default)
-            if (bookingDetails) {
-              verifyPayload.booking_details = {
-                ...bookingDetails,
-                guest_name: guestName,
-                guest_email: guestEmail,
-                guest_phone: guestPhone,
-              };
-            } else {
-              // Get a real property ID before creating booking details
-              try {
-                const propertyResponse = await fetch('/api/get-sample-property', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                  },
-                });
-                
-                const propertyData = await propertyResponse.json();
-                
-                if (!propertyData.success || !propertyData.property) {
-                  throw new Error('No properties available for booking');
-                }
+            console.log('🔄 Verifying payment:', verifyPayload);
 
-                // Create default booking details with real property ID
-                verifyPayload.booking_details = {
-                  property_id: propertyData.property.id,
-                  guest_name: guestName,
-                  guest_email: guestEmail,
-                  guest_phone: guestPhone,
-                  sharing_type: roomNumber || 'Single Room',
-                  price_per_person: amount * 5, // Assume 20% advance
-                  security_deposit_per_person: amount * 10, // 2x monthly rent
-                  total_amount: amount * 15, // Monthly rent + security
-                  amount_paid: amount,
-                  amount_due: amount * 14, // Remaining amount
-                };
-              } catch (propertyError: any) {
-                console.error('❌ Failed to get property for booking:', propertyError);
-                onError('No properties available for booking. Please contact support.');
-                return;
-              }
-            }
-
-            console.log('🔄 Verifying payment with booking details:', verifyPayload);
-
-            // Verify payment with authentication
-            const verifyResponse = await fetch('/api/verify-payment-working', {
+            // Verify payment with simple booking logic
+            const verifyResponse = await fetch('/api/verify-payment-simple-booking', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
