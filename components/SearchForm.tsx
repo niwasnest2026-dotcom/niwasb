@@ -7,43 +7,6 @@ import {
 } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
 
-// Popular areas, colleges, and offices for autocomplete
-const popularLocations = [
-  // Bangalore
-  'Koramangala, Bangalore', 'HSR Layout, Bangalore', 'BTM Layout, Bangalore', 
-  'Electronic City, Bangalore', 'Whitefield, Bangalore', 'Marathahalli, Bangalore',
-  'Indiranagar, Bangalore', 'Jayanagar, Bangalore', 'JP Nagar, Bangalore',
-  'Christ University, Bangalore', 'PES University, Bangalore', 'RV College, Bangalore',
-  'Infosys, Electronic City', 'TCS, Whitefield', 'Wipro, Sarjapur',
-  
-  // Mumbai
-  'Andheri, Mumbai', 'Bandra, Mumbai', 'Powai, Mumbai', 'Thane, Mumbai',
-  'Goregaon, Mumbai', 'Malad, Mumbai', 'Kandivali, Mumbai', 'Borivali, Mumbai',
-  'IIT Bombay, Mumbai', 'NMIMS, Mumbai', 'DJ Sanghvi, Mumbai',
-  'BKC, Mumbai', 'Lower Parel, Mumbai', 'Navi Mumbai',
-  
-  // Delhi
-  'Lajpat Nagar, Delhi', 'Karol Bagh, Delhi', 'Rajouri Garden, Delhi',
-  'Dwarka, Delhi', 'Rohini, Delhi', 'Pitampura, Delhi',
-  'DU North Campus, Delhi', 'DU South Campus, Delhi', 'JNU, Delhi',
-  'Connaught Place, Delhi', 'Gurgaon', 'Noida',
-  
-  // Pune
-  'Kothrud, Pune', 'Aundh, Pune', 'Baner, Pune', 'Wakad, Pune',
-  'Hinjewadi, Pune', 'Viman Nagar, Pune', 'Koregaon Park, Pune',
-  'Pune University', 'VIT Pune', 'Symbiosis, Pune',
-  
-  // Hyderabad
-  'Gachibowli, Hyderabad', 'Madhapur, Hyderabad', 'Kondapur, Hyderabad',
-  'Kukatpally, Hyderabad', 'Ameerpet, Hyderabad', 'Begumpet, Hyderabad',
-  'HITEC City, Hyderabad', 'ISB Hyderabad', 'IIIT Hyderabad',
-  
-  // Chennai
-  'Anna Nagar, Chennai', 'T Nagar, Chennai', 'Velachery, Chennai',
-  'OMR, Chennai', 'Adyar, Chennai', 'Guindy, Chennai',
-  'IIT Madras, Chennai', 'Anna University, Chennai', 'SRM University, Chennai'
-];
-
 const genderOptions = [
   { value: 'any', label: 'Any', icon: FaUsers },
   { value: 'boys', label: 'Boys', icon: FaUser },
@@ -58,17 +21,45 @@ export default function SearchForm() {
   const [gender, setGender] = useState('any');
   const [nearbyProperties, setNearbyProperties] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [availableLocations, setAvailableLocations] = useState<string[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
   
   const locationInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // Fetch available locations from database
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch('/api/get-locations');
+        const data = await response.json();
+        
+        if (data.success) {
+          setAvailableLocations(data.locations);
+          console.log(`📍 Loaded ${data.dynamic_count} dynamic + ${data.static_count} static locations`);
+        } else {
+          console.error('Failed to fetch locations:', data.error);
+          // Fallback to empty array - will show "no locations" message
+          setAvailableLocations([]);
+        }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        setAvailableLocations([]);
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
   // Memoized filtered locations for better performance
   const filteredLocations = useMemo(() => {
-    if (!location.trim()) return popularLocations.slice(0, 8);
-    return popularLocations.filter(loc => 
+    if (!location.trim()) return availableLocations.slice(0, 8);
+    return availableLocations.filter(loc => 
       loc.toLowerCase().includes(location.toLowerCase())
     ).slice(0, 10);
-  }, [location]);
+  }, [location, availableLocations]);
 
   // Set default move-in date to today
   useEffect(() => {
@@ -170,7 +161,7 @@ export default function SearchForm() {
               <input
                 ref={locationInputRef}
                 type="text"
-                placeholder="Search by area, college, or office"
+                placeholder={locationsLoading ? "Loading locations..." : "Search by area, college, or office"}
                 value={location}
                 onChange={(e) => {
                   setLocation(e.target.value);
@@ -180,18 +171,24 @@ export default function SearchForm() {
                   }
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-16 pr-6 py-5 text-xl font-medium border-3 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none transition-all shadow-sm"
+                disabled={locationsLoading}
+                className="w-full pl-16 pr-6 py-5 text-xl font-medium border-3 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none transition-all shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                 style={{ 
                   fontSize: '18px', 
                   color: '#111827 !important',
-                  backgroundColor: '#ffffff',
+                  backgroundColor: locationsLoading ? '#f3f4f6' : '#ffffff',
                   WebkitTextFillColor: '#111827'
                 }}
               />
+              {locationsLoading && (
+                <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                </div>
+              )}
             </div>
 
             {/* Location Suggestions */}
-            {showSuggestions && (
+            {showSuggestions && !locationsLoading && (
               <div 
                 ref={suggestionsRef}
                 className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 max-h-80 overflow-y-auto"
@@ -204,7 +201,9 @@ export default function SearchForm() {
                 {filteredLocations.length > 0 ? (
                   <>
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <span className="text-sm font-semibold text-gray-600">Popular Locations</span>
+                      <span className="text-sm font-semibold text-gray-600">
+                        Available Locations ({availableLocations.length} total)
+                      </span>
                     </div>
                     {filteredLocations.map((locationName) => (
                       <button
@@ -238,10 +237,22 @@ export default function SearchForm() {
                     ))}
                   </>
                 ) : location.trim() ? (
-                  <div className="px-6 py-4 text-gray-500 text-center" style={{ color: '#6b7280' }}>
-                    No locations found. Try searching for areas, colleges, or offices.
+                  <div className="px-6 py-8 text-center">
+                    <div className="text-gray-500 mb-3" style={{ color: '#6b7280' }}>
+                      No properties found in "{location}"
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Try searching for nearby areas or add properties in this location through admin panel
+                    </div>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="px-6 py-4 text-center">
+                    <div className="text-gray-500 mb-2">Start typing to search locations</div>
+                    <div className="text-xs text-gray-400">
+                      {availableLocations.length} locations available from your properties
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
