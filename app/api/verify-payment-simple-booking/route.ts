@@ -95,7 +95,10 @@ export async function POST(request: NextRequest) {
     // SIMPLE BOOKING LOGIC: Get property and room in one go
     console.log('🏠 Getting property and room for booking...');
     
-    const { data: propertyWithRoom, error: propertyError } = await supabaseAdmin
+    let propertyWithRoom: any = null;
+    
+    // Try to find existing property with available room
+    const { data: existingProperty, error: propertyError } = await supabaseAdmin
       .from('properties')
       .select(`
         id, 
@@ -116,7 +119,10 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    if (propertyError || !propertyWithRoom) {
+    if (!propertyError && existingProperty) {
+      propertyWithRoom = existingProperty;
+      console.log('✅ Found existing property with available room');
+    } else {
       console.log('❌ No available property with rooms found');
       
       // Fallback: Create property and room if none exists
