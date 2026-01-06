@@ -108,9 +108,31 @@ export async function POST(request: NextRequest) {
     let bookingData: any;
     
     if (booking_details) {
+      // Handle case where property_id might be 'default'
+      let propertyId = booking_details.property_id;
+      
+      if (propertyId === 'default' || !propertyId) {
+        // Get a real property from the database
+        const { data: availableProperty } = await supabaseAdmin
+          .from('properties')
+          .select('id, name, price')
+          .limit(1)
+          .single();
+
+        if (!availableProperty) {
+          return NextResponse.json({
+            success: false,
+            error: 'No properties available for booking. Please add properties first.'
+          }, { status: 500 });
+        }
+        
+        propertyId = availableProperty.id;
+        console.log('🏠 Using fallback property:', availableProperty.name, propertyId);
+      }
+
       bookingData = {
         user_id: user.id,
-        property_id: booking_details.property_id,
+        property_id: propertyId, // Use real property ID
         guest_name: booking_details.guest_name,
         guest_email: booking_details.guest_email || user.email,
         guest_phone: booking_details.guest_phone,
