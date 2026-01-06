@@ -15,7 +15,39 @@ export async function GET() {
       }
     );
 
-    // Get all unique locations from properties
+    // Try to get locations from dedicated locations table first
+    const { data: locationsTable, error: locationsError } = await supabaseAdmin
+      .from('locations')
+      .select('name, city, state, popularity, property_count')
+      .order('popularity', { ascending: false })
+      .limit(50);
+
+    if (!locationsError && locationsTable && locationsTable.length > 0) {
+      console.log('📍 Using dedicated locations table');
+      
+      // Format locations for search suggestions
+      const formattedLocations = locationsTable.map(location => {
+        if (location.name === location.city) {
+          return location.city;
+        } else {
+          return `${location.name}, ${location.city}`;
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        locations: formattedLocations,
+        source: 'locations_table',
+        dynamic_count: locationsTable.filter(l => l.property_count > 0).length,
+        static_count: locationsTable.filter(l => l.property_count === 0).length,
+        total_count: formattedLocations.length,
+        table_used: true
+      });
+    }
+
+    console.log('📍 Falling back to properties table extraction');
+
+    // Fallback: Get all unique locations from properties (legacy method)
     const { data: properties, error } = await supabaseAdmin
       .from('properties')
       .select('city, area, address')
@@ -119,9 +151,12 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       locations: allLocations,
+      source: 'properties_extraction',
       dynamic_count: dynamicLocations.length,
       static_count: staticLocations.length,
-      total_count: allLocations.length
+      total_count: allLocations.length,
+      table_used: false,
+      suggestion: 'Consider setting up dedicated locations table for better performance'
     });
 
   } catch (error: any) {
