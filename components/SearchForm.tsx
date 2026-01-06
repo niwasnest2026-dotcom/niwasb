@@ -55,7 +55,10 @@ export default function SearchForm() {
 
   // Memoized filtered locations for better performance
   const filteredLocations = useMemo(() => {
-    if (!location.trim()) return availableLocations.slice(0, 8);
+    if (!location.trim()) {
+      // Show available locations when no input is given
+      return availableLocations.slice(0, 12); // Show more locations when empty
+    }
     return availableLocations.filter(loc => 
       loc.toLowerCase().includes(location.toLowerCase())
     ).slice(0, 10);
@@ -171,6 +174,7 @@ export default function SearchForm() {
                   }
                 }}
                 onFocus={() => setShowSuggestions(true)}
+                onClick={() => setShowSuggestions(true)} // Show suggestions on click even if empty
                 disabled={locationsLoading}
                 className="w-full pl-16 pr-6 py-5 text-xl font-medium border-3 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none transition-all shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                 style={{ 
@@ -202,8 +206,16 @@ export default function SearchForm() {
                   <>
                     <div className="px-4 py-3 border-b border-gray-100">
                       <span className="text-sm font-semibold text-gray-600">
-                        Available Locations ({availableLocations.length} total)
+                        {location.trim() ? 
+                          `Matching Locations (${filteredLocations.length})` : 
+                          `Available Locations (${availableLocations.length} total)`
+                        }
                       </span>
+                      {!location.trim() && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Properties are available in these locations
+                        </p>
+                      )}
                     </div>
                     {filteredLocations.map((locationName) => (
                       <button
@@ -235,6 +247,13 @@ export default function SearchForm() {
                         </div>
                       </button>
                     ))}
+                    {!location.trim() && availableLocations.length > 12 && (
+                      <div className="px-6 py-3 text-center border-t border-gray-100">
+                        <p className="text-sm text-gray-500">
+                          Showing 12 of {availableLocations.length} locations. Start typing to search more.
+                        </p>
+                      </div>
+                    )}
                   </>
                 ) : location.trim() ? (
                   <div className="px-6 py-8 text-center">
