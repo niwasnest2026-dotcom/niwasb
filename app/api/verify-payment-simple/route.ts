@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Fallback payment verification started');
+    console.log('🔍 Simple payment verification started');
 
     // Validate required environment variables
     const requiredEnvVars = {
@@ -29,8 +29,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔧 Using environment variables for configuration');
-
     // Check authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
@@ -40,31 +38,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Dynamic import to avoid build-time issues
-    // const { createClient } = await import('@supabase/supabase-js');
-
-    // Create admin client
+    // Create clients
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
+        auth: { autoRefreshToken: false, persistSession: false }
       }
     );
 
-    // Verify the user session with Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
+        global: { headers: { Authorization: authHeader } }
       }
     );
 
@@ -105,20 +92,30 @@ export async function POST(request: NextRequest) {
     if (!isAuthentic) {
       console.log('❌ Payment signature verification failed');
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Payment verification failed',
-        },
+        { success: false, error: 'Payment verification failed' },
         { status: 400 }
       );
     }
 
     console.log('✅ Payment signature verified');
 
-    // Always create booking for successful payments
-    console.log('🔄 Creating booking...');
-    
-    // If booking_details is provided, use it; otherwise create a basic booking
+    // Check if booking already exists (search by notes containing payment_id)
+    const { data: existingBooking } = await supabaseAdmin
+      .from('bookings')
+      .select('id')
+      .ilike('notes', `%${razorpay_payment_id}%`)
+      .single();
+
+    if (existingBooking) {
+      console.log('✅ Booking already exists:', existingBooking.id);
+      return NextResponse.json({
+        success: true,
+        message: 'Payment verified and booking already exists',
+        booking_id: existingBooking.id,
+      });
+    }
+
+    // Create booking data without payment_id initially
     let bookingData: any;
     
     if (booking_details) {
@@ -138,7 +135,6 @@ export async function POST(request: NextRequest) {
         payment_status: 'partial',
         booking_status: 'confirmed',
         payment_date: new Date().toISOString(),
-        payment_id: razorpay_payment_id,
         notes: `Payment ID: ${razorpay_payment_id}, Order: ${razorpay_order_id}`
       };
 
@@ -189,30 +185,13 @@ export async function POST(request: NextRequest) {
         payment_status: 'partial',
         booking_status: 'confirmed',
         payment_date: new Date().toISOString(),
-        payment_id: razorpay_payment_id,
         notes: `Auto-created booking for payment ${razorpay_payment_id}`
       };
     }
 
     console.log('📝 Creating booking with data:', bookingData);
 
-    // Check if booking already exists for this payment
-    const { data: existingBooking } = await supabaseAdmin
-      .from('bookings')
-      .select('id')
-      .eq('payment_id', razorpay_payment_id)
-      .single();
-
-    if (existingBooking) {
-      console.log('✅ Booking already exists:', existingBooking.id);
-      return NextResponse.json({
-        success: true,
-        message: 'Payment verified and booking already exists',
-        booking_id: existingBooking.id,
-      });
-    }
-
-    // Create the booking
+    // Create the booking first without payment_id
     const { data: bookingResult, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert(bookingData)
@@ -231,6 +210,22 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Booking created successfully:', bookingResult.id);
+
+    // Try to update with payment_id if column exists
+    try {
+      const { error: updateError } = await supabaseAdmin
+        .from('bookings')
+        .update({ payment_id: razorpay_payment_id })
+        .eq('id', bookingResult.id);
+
+      if (updateError) {
+        console.log('⚠️ Could not update payment_id (column might not exist):', updateError.message);
+      } else {
+        console.log('✅ Payment ID updated successfully');
+      }
+    } catch (updateError: any) {
+      console.log('⚠️ Payment ID update failed:', updateError.message);
+    }
 
     // Update available beds count if room_id exists
     if (bookingData.room_id) {
