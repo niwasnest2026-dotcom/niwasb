@@ -264,14 +264,14 @@ export default function SearchForm() {
                       Try searching for nearby areas or add properties in this location through admin panel
                     </div>
                   </div>
-                ) : (
+                ) : availableLocations.length === 0 ? (
                   <div className="px-6 py-4 text-center">
-                    <div className="text-gray-500 mb-2">Start typing to search locations</div>
+                    <div className="text-gray-500 mb-2">No locations available</div>
                     <div className="text-xs text-gray-400">
-                      {availableLocations.length} locations available from your properties
+                      Add properties through admin panel to see locations here
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             )}
           </div>
