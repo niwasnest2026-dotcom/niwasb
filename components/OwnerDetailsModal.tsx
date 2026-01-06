@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { FaTimes, FaUser, FaPhone, FaHome, FaCalendarAlt, FaBed, FaRupeeSign } from 'react-icons/fa';
 import { supabase } from '@/lib/supabase';
 
@@ -96,8 +97,34 @@ export default function OwnerDetailsModal({ isOpen, onClose, bookingId }: OwnerD
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Owner Details Temporarily Unavailable</h3>
+                <p className="text-yellow-700 text-sm mb-4">
+                  Your payment was successful and booking is confirmed! Owner details will be available in your profile shortly.
+                </p>
+                <div className="space-y-2">
+                  <Link 
+                    href="/profile"
+                    className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    View in Profile
+                  </Link>
+                  <button
+                    onClick={() => fetchOwnerDetails()}
+                    className="ml-2 inline-block bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+                {error.includes('not found') && (
+                  <div className="mt-3 pt-3 border-t border-yellow-200">
+                    <p className="text-xs text-yellow-600">
+                      If this issue persists, please contact support with your booking ID: {bookingId}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

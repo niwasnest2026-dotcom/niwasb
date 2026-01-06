@@ -123,14 +123,14 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
-            // Prepare booking details if provided
+            // Always prepare booking details for every payment
             const verifyPayload: any = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             };
 
-            // Add booking details if provided (for real-time booking creation)
+            // Always include booking details (either provided or default)
             if (bookingDetails) {
               verifyPayload.booking_details = {
                 ...bookingDetails,
@@ -138,7 +138,23 @@ export default function RazorpayPayment({
                 guest_email: guestEmail,
                 guest_phone: guestPhone,
               };
+            } else {
+              // Create default booking details if not provided
+              verifyPayload.booking_details = {
+                property_id: 'default', // Will be handled by API
+                guest_name: guestName,
+                guest_email: guestEmail,
+                guest_phone: guestPhone,
+                sharing_type: roomNumber || 'Single Room',
+                price_per_person: amount * 5, // Assume 20% advance
+                security_deposit_per_person: amount * 10, // 2x monthly rent
+                total_amount: amount * 15, // Monthly rent + security
+                amount_paid: amount,
+                amount_due: amount * 14, // Remaining amount
+              };
             }
+
+            console.log('🔄 Verifying payment with booking details:', verifyPayload);
 
             // Verify payment with authentication
             const verifyResponse = await fetch('/api/verify-payment', {
@@ -151,13 +167,15 @@ export default function RazorpayPayment({
             });
 
             const verifyData = await verifyResponse.json();
+            console.log('✅ Payment verification response:', verifyData);
 
             if (verifyData.success) {
               onSuccess(response.razorpay_payment_id);
             } else {
-              onError('Payment verification failed');
+              onError('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
             }
           } catch (error: any) {
+            console.error('❌ Payment verification error:', error);
             onError(error.message || 'Payment verification failed');
           }
         },

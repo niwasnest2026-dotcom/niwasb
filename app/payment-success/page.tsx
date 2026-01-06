@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaCheckCircle, FaHome, FaReceipt, FaWhatsapp, FaTimes } from 'react-icons/fa';
+import { supabase } from '@/lib/supabase';
 import OwnerDetailsModal from '@/components/OwnerDetailsModal';
 
 export default function PaymentSuccessPage() {
@@ -41,12 +42,60 @@ export default function PaymentSuccessPage() {
       localStorage.removeItem('notificationsSent'); // Clean up
     }
 
-    // Auto-show owner details modal if booking ID exists
-    if (bookingId) {
-      setTimeout(() => {
-        setShowOwnerModal(true);
-      }, 2000); // Show after 2 seconds
-    }
+    // Try to find the booking ID if not provided in URL
+    const findBookingId = async () => {
+      if (!bookingId && paymentId) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            // Try to find booking by payment ID
+            const response = await fetch(`/api/debug-recent-booking?paymentId=${paymentId}`);
+            const data = await response.json();
+            
+            if (data.success && data.bookings && data.bookings.length > 0) {
+              const foundBooking = data.bookings[0];
+              console.log('📋 Found booking for payment:', foundBooking.id);
+              
+              // Update booking details with found booking ID
+              setBookingDetails((prev: any) => ({
+                ...prev,
+                bookingId: foundBooking.id
+              }));
+              
+              // Show owner details modal after finding booking
+              setTimeout(() => {
+                setShowOwnerModal(true);
+              }, 2000);
+            } else {
+              console.log('⚠️ No booking found for payment ID:', paymentId);
+            }
+          }
+        } catch (error) {
+          console.log('❌ Error finding booking:', error);
+        }
+      } else if (bookingId) {
+        // Check if user is authenticated before showing modal
+        const checkAuthAndShowModal = async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              // Wait longer for booking to be fully processed and indexed
+              setTimeout(() => {
+                setShowOwnerModal(true);
+              }, 5000); // Show after 5 seconds instead of 3
+            } else {
+              console.log('User not authenticated, skipping owner details modal');
+            }
+          } catch (error) {
+            console.log('Auth check failed, skipping owner details modal');
+          }
+        };
+        
+        checkAuthAndShowModal();
+      }
+    };
+
+    findBookingId();
   }, [paymentId, bookingId, amount, propertyName, guestName, router]);
 
   if (!bookingDetails) {
@@ -172,6 +221,9 @@ export default function PaymentSuccessPage() {
                     Click here to view owner contact details
                   </button>
                 </li>
+              )}
+              {!bookingId && (
+                <li>• Owner contact details will be available in your profile within a few minutes</li>
               )}
             </ul>
           </div>

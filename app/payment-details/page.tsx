@@ -114,79 +114,40 @@ export default function PaymentDetailsPage() {
 
   const handlePaymentSuccess = async (paymentId: string) => {
     try {
+      console.log('🎉 Payment successful, payment ID:', paymentId);
+      
       // Calculate amounts
       const securityDeposit = selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2;
       const totalAmount = selectedRoom.price_per_person + securityDeposit;
       const amountPaid = Math.round(selectedRoom.price_per_person * 0.2); // 20% of one month rent only
       const amountDue = totalAmount - amountPaid; // Remaining amount
 
-      // Create the booking record
-      const bookingData = {
-        property_id: property!.id,
-        guest_name: fullName,
-        guest_email: email,
-        guest_phone: phone,
-        sharing_type: selectedRoom.sharing_type,
-        price_per_person: selectedRoom.price_per_person,
-        security_deposit_per_person: securityDeposit,
-        total_amount: totalAmount,
-        amount_paid: amountPaid,
-        amount_due: amountDue,
-        payment_method: 'razorpay',
-        payment_status: 'partial', // 20% paid
-        booking_status: 'confirmed',
-        payment_date: new Date().toISOString(),
-        payment_id: paymentId, // Store the Razorpay payment ID
-        check_in_date: checkIn || null,
-        check_out_date: checkOut || null,
-        notes: `Booking made through Razorpay. Payment ID: ${paymentId}. ${duration ? `Duration: ${duration} months.` : ''} ${sharingType ? `Selected sharing type: ${sharingType}` : propertyType === 'Room' ? 'Room type property booking' : `Specific room: ${selectedRoom.room_number}`}`
-      };
-
-      // Only add room_id if it's not a mock room for Room type properties
-      if (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) {
-        (bookingData as any).room_id = selectedRoom.id;
-      }
-
-      // Get user session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('Authentication session expired. Please login again.');
-      }
-
-      // Create booking via API
-      const response = await fetch('/api/create-booking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(bookingData),
+      console.log('💰 Payment amounts calculated:', {
+        monthlyRent: selectedRoom.price_per_person,
+        securityDeposit,
+        totalAmount,
+        amountPaid,
+        amountDue
       });
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create booking');
-      }
-
-      // Show success message and redirect
-      alert(`🎉 Booking Confirmed! 
+      // Show success message immediately
+      alert(`🎉 Payment Successful! 
       
-Booking ID: ${result.booking_id}
 Payment ID: ${paymentId}
 Amount Paid: ₹${amountPaid.toLocaleString()}
-Remaining Amount: ₹${amountDue.toLocaleString()} (to be paid to property owner)
 
-You will receive a confirmation email shortly.`);
+Your booking is being processed. You will be redirected to the confirmation page.`);
 
       // Redirect to payment success page with booking details
-      const successUrl = `/payment-success?paymentId=${paymentId}&bookingId=${result.booking_id}&amount=${amountPaid}&propertyName=${encodeURIComponent(property!.name)}&guestName=${encodeURIComponent(fullName!)}`;
+      // The booking should already be created by the verify-payment API
+      const successUrl = `/payment-success?paymentId=${paymentId}&amount=${amountPaid}&propertyName=${encodeURIComponent(property!.name)}&guestName=${encodeURIComponent(fullName!)}`;
+      
+      console.log('🔄 Redirecting to success page:', successUrl);
       router.push(successUrl);
 
     } catch (error: any) {
-      console.error('Booking creation error:', error);
-      alert('Booking creation failed: ' + (error.message || 'Unknown error'));
+      console.error('❌ Payment success handling error:', error);
+      alert('Payment was successful but there was an issue processing your booking. Please contact support with payment ID: ' + paymentId);
     }
   };
 
@@ -305,6 +266,19 @@ You will receive a confirmation email shortly.`);
             roomNumber={selectedRoom.room_number || selectedRoom.sharing_type}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
+            bookingDetails={{
+              property_id: property.id,
+              room_id: (propertyType !== 'Room' && selectedRoom.id && !selectedRoom.id.startsWith('property_')) ? selectedRoom.id : undefined,
+              sharing_type: selectedRoom.sharing_type,
+              price_per_person: selectedRoom.price_per_person,
+              security_deposit_per_person: selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2,
+              total_amount: selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2),
+              amount_paid: Math.round(selectedRoom.price_per_person * 0.2),
+              amount_due: (selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) - Math.round(selectedRoom.price_per_person * 0.2),
+              duration: duration,
+              check_in: checkIn,
+              check_out: checkOut
+            }}
           />
         </div>
       </div>

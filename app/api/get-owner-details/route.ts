@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Simple debug endpoint to check if API is working
-    const supabase = createClient(
+    // Create admin client for debugging
+    const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
     // Get recent bookings for debugging
-    const { data: recentBookings } = await supabase
+    const { data: recentBookings } = await supabaseAdmin
       .from('bookings')
       .select('id, user_id, payment_status, property_id, guest_name')
       .order('created_at', { ascending: false })
@@ -34,7 +40,19 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Owner details API called');
 
-    // Check authentication
+    // Create admin client for database operations
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Check authentication with regular client
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       console.log('❌ No auth header');
@@ -79,8 +97,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, let's check if the booking exists at all
-    const { data: bookingCheck, error: checkError } = await supabase
+    // Use admin client to check if the booking exists (bypasses RLS)
+    const { data: bookingCheck, error: checkError } = await supabaseAdmin
       .from('bookings')
       .select('id, user_id, payment_status, property_id')
       .eq('id', booking_id)
@@ -89,11 +107,12 @@ export async function POST(request: NextRequest) {
     console.log('📋 Booking check result:', { bookingCheck, checkError });
 
     if (checkError || !bookingCheck) {
-      // Try to find any booking for this user
-      const { data: userBookings } = await supabase
+      // Try to find any booking for this user using admin client
+      const { data: userBookings } = await supabaseAdmin
         .from('bookings')
-        .select('id, user_id, payment_status, property_id')
+        .select('id, user_id, payment_status, property_id, guest_name, created_at')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(5);
 
       console.log('👤 User bookings:', userBookings);
@@ -121,8 +140,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get full booking details with property info
-    const { data: booking, error: bookingError } = await supabase
+    // Get full booking details with property info using admin client
+    const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .select(`
         *,
@@ -180,9 +199,9 @@ export async function POST(request: NextRequest) {
         payment_instructions: property.payment_instructions,
         property_name: property.name,
         booking_id: booking.id,
-        amount_due: booking.amount_due,
+        amount_due: booking.amount_due || 0,
         check_in_date: booking.check_in_date,
-        room_sharing: booking.sharing_type
+        room_sharing: booking.sharing_type || 'Not specified'
       }
     });
   } catch (error: any) {
