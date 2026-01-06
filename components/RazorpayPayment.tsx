@@ -157,7 +157,7 @@ export default function RazorpayPayment({
             console.log('🔄 Verifying payment with booking details:', verifyPayload);
 
             // Verify payment with authentication
-            const verifyResponse = await fetch('/api/verify-payment-simple', {
+            const verifyResponse = await fetch('/api/verify-payment-working', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
