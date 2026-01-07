@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Script from 'next/script';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { preValidatePayment } from '@/lib/payment-validation';
 
 interface RazorpayPaymentProps {
   amount: number;
@@ -56,10 +57,30 @@ export default function RazorpayPayment({
       return;
     }
 
+    // Step 1: FRONTEND PRE-VALIDATION (REQUIRED)
+    console.log('🔍 Pre-validating payment data...');
+    
+    const paymentInput = {
+      propertyId,
+      amount,
+      userDetails: {
+        name: userDetails.name,
+        email: userDetails.email,
+        phone: userDetails.phone
+      }
+    };
+
+    const validationError = preValidatePayment(paymentInput);
+    if (validationError) {
+      onError(validationError);
+      return;
+    }
+
+    console.log('✅ Pre-validation passed');
     setLoading(true);
 
     try {
-      // Step 1: Get authentication session
+      // Step 2: Get authentication session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -70,29 +91,50 @@ export default function RazorpayPayment({
 
       console.log('🔄 Creating order for property:', propertyId);
 
-      // Step 2: Create Razorpay order (NO booking created here)
+      // Step 3: SEND PAYLOAD EXPLICITLY (CRITICAL)
+      // ❌ Do NOT depend on: URL params, Razorpay response, previously stored state
+      // ✅ Backend must trust ONLY request body
+      const orderPayload = {
+        propertyId: propertyId,
+        amount: amount,
+        userDetails: {
+          name: userDetails.name,
+          email: userDetails.email,
+          phone: userDetails.phone
+        }
+      };
+
+      console.log('📤 Sending standardized payload:', {
+        propertyId: orderPayload.propertyId,
+        amount: orderPayload.amount,
+        userDetails: {
+          name: orderPayload.userDetails.name,
+          email: orderPayload.userDetails.email,
+          phone: orderPayload.userDetails.phone
+        }
+      });
+
       const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          propertyId,
-          amount,
-          userDetails
-        }),
+        body: JSON.stringify(orderPayload),
       });
 
       const orderData = await orderResponse.json();
 
       if (!orderData.success) {
-        throw new Error(orderData.error || 'Failed to create order');
+        // UX FIX: Generic error message (no internal field names or backend validation messages)
+        onError('Unable to start payment. Please try again or contact support.');
+        setLoading(false);
+        return;
       }
 
       console.log('✅ Order created:', orderData.order_id);
 
-      // Step 3: Initialize Razorpay payment
+      // Step 4: Initialize Razorpay payment
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -121,7 +163,7 @@ export default function RazorpayPayment({
             // Show generic processing message
             setLoading(true);
 
-            // Step 4: Verify payment and create booking (server-side only)
+            // Step 5: Verify payment and create booking (server-side only)
             const verifyPayload = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -174,14 +216,16 @@ export default function RazorpayPayment({
       
       rzp.on('payment.failed', function (response: any) {
         console.error('❌ Payment failed:', response.error);
-        onError(response.error.description || 'Payment failed');
+        // UX FIX: Generic error message (no popup error with raw backend messages)
+        onError('Unable to start payment. Please try again or contact support.');
         setLoading(false);
       });
 
       rzp.open();
     } catch (error: any) {
       console.error('❌ Payment initiation error:', error);
-      onError(error.message || 'Failed to initiate payment');
+      // UX FIX: Generic error message
+      onError('Unable to start payment. Please try again or contact support.');
       setLoading(false);
     }
   };

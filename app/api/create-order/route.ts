@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
 import { ENV_CONFIG } from '@/lib/env-config';
+import { validateForAPI, StandardizedPaymentInput } from '@/lib/payment-validation';
 
 // Initialize Razorpay with environment variables
 const razorpay = new Razorpay({
@@ -11,13 +12,13 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Creating Razorpay order...');
+    console.log('🔄 Creating Razorpay order with standardized input...');
 
     // Step 1: Validate authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
-        { success: false, error: 'Authentication required' },
+        { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
@@ -38,24 +39,49 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       console.log('❌ Authentication failed:', authError?.message);
       return NextResponse.json(
-        { success: false, error: 'Invalid authentication' },
+        { success: false, message: 'Invalid authentication' },
         { status: 401 }
       );
     }
 
     console.log('✅ User authenticated:', user.id);
 
-    // Step 3: Validate request payload
-    const { propertyId, amount, userDetails } = await request.json();
-
-    if (!propertyId || !amount || !userDetails) {
+    // Step 3: Parse request body (ONLY request body, NO query params)
+    let requestBody: StandardizedPaymentInput;
+    
+    try {
+      requestBody = await request.json();
+    } catch (parseError) {
+      console.log('❌ Invalid JSON payload');
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: propertyId, amount, userDetails' },
+        { success: false, message: 'Invalid request format' },
         { status: 400 }
       );
     }
 
-    // Step 4: Validate property exists (server-side validation)
+    // Step 4: STRICT VALIDATION using utility (NO 500 errors for user mistakes)
+    const validationResult = validateForAPI(requestBody);
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: validationResult.message
+        },
+        { status: validationResult.statusCode }
+      );
+    }
+
+    const { propertyId, amount, userDetails } = requestBody;
+
+    console.log('✅ Payload validation passed:', {
+      propertyId,
+      amount,
+      userName: userDetails.name,
+      userEmail: userDetails.email
+    });
+
+    // Step 5: Validate property exists (server-side validation)
     const supabaseAdmin = createClient(
       ENV_CONFIG.SUPABASE_URL,
       ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
@@ -76,14 +102,14 @@ export async function POST(request: NextRequest) {
     if (propertyError || !property) {
       console.log('❌ Property not found:', propertyId);
       return NextResponse.json(
-        { success: false, error: 'Property not found' },
+        { success: false, message: 'Property not available' },
         { status: 404 }
       );
     }
 
     console.log('✅ Property validated:', property.name);
 
-    // Step 5: Create Razorpay order (NO booking creation here)
+    // Step 6: Create Razorpay order (NO booking creation here)
     const orderOptions = {
       amount: Math.round(amount * 100), // Convert to paise
       currency: 'INR',
@@ -102,13 +128,12 @@ export async function POST(request: NextRequest) {
     const order = await razorpay.orders.create(orderOptions as any) as any;
     console.log('✅ Razorpay order created:', order.id);
 
-    // Step 6: Return order details (NO booking created yet)
+    // Step 7: Return standardized response
     return NextResponse.json({
       success: true,
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
-      // Include property and user details for frontend
       property: {
         id: property.id,
         name: property.name
@@ -121,10 +146,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Order creation error:', error);
+    
+    // Don't expose internal errors to frontend
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to create order',
+        message: 'Unable to create payment order',
       },
       { status: 500 }
     );
