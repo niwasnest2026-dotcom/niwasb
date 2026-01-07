@@ -142,8 +142,8 @@ export default function RazorpayPayment({
 
             console.log('🔄 Verifying payment with booking details:', verifyPayload);
 
-            // Use the rebuilt verification endpoint that properly handles schema
-            const verificationEndpoint = '/api/verify-payment-rebuilt';
+            // Use the original verification endpoint with proper schema handling
+            const verificationEndpoint = '/api/verify-payment';
 
             // Verify payment with booking details
             const verifyResponse = await fetch(verificationEndpoint, {
