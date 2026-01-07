@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Script from 'next/script';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { preValidatePayment } from '@/lib/payment-validation';
 
 interface RazorpayPaymentProps {
   amount: number;
@@ -14,25 +13,9 @@ interface RazorpayPaymentProps {
     name: string;
     email: string;
     phone: string;
-    sharing_type?: string;
-    price_per_person?: number;
-    security_deposit_per_person?: number;
-    total_amount?: number;
-    amount_paid?: number;
-    amount_due?: number;
-    room_id?: string;
-    check_in?: string;
-    check_out?: string;
   };
   onSuccess: (paymentId: string, bookingId: string) => void;
   onError: (error: string) => void;
-  // Legacy props for backward compatibility (DEPRECATED)
-  bookingId?: string;
-  guestName?: string;
-  guestEmail?: string;
-  guestPhone?: string;
-  roomNumber?: string;
-  bookingDetails?: any;
 }
 
 declare global {
@@ -45,125 +28,13 @@ export default function RazorpayPayment({
   amount,
   propertyId,
   propertyName,
-  userDetails: propUserDetails,
+  userDetails,
   onSuccess,
   onError,
-  // Legacy props for backward compatibility
-  bookingId,
-  guestName,
-  guestEmail,
-  guestPhone,
-  roomNumber,
-  bookingDetails,
 }: RazorpayPaymentProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const { user } = useAuth();
-
-  // 1️⃣ DEFINE DEFAULT STATE (MANDATORY) - Safe initialization
-  const [userDetails, setUserDetails] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    sharing_type: "",
-    price_per_person: 0,
-    security_deposit_per_person: 0,
-    total_amount: 0,
-    amount_paid: 0,
-    amount_due: 0,
-    room_id: "",
-    check_in: "",
-    check_out: "",
-  });
-
-  // 2️⃣ INITIALIZE STATE FROM PROPS (onPageLoad logic)
-  useEffect(() => {
-    console.log('🔄 Initializing userDetails from props...', { propUserDetails, guestName, guestEmail, guestPhone });
-    
-    let normalizedUserDetails;
-    
-    // Handle new interface (preferred)
-    if (propUserDetails && propUserDetails.name && propUserDetails.email && propUserDetails.phone) {
-      console.log('✅ Using new userDetails interface');
-      normalizedUserDetails = {
-        name: propUserDetails.name || "",
-        email: propUserDetails.email || "",
-        phone: propUserDetails.phone || "",
-        sharing_type: propUserDetails.sharing_type || "",
-        price_per_person: propUserDetails.price_per_person || 0,
-        security_deposit_per_person: propUserDetails.security_deposit_per_person || 0,
-        total_amount: propUserDetails.total_amount || 0,
-        amount_paid: propUserDetails.amount_paid || 0,
-        amount_due: propUserDetails.amount_due || 0,
-        room_id: propUserDetails.room_id || "",
-        check_in: propUserDetails.check_in || "",
-        check_out: propUserDetails.check_out || "",
-      };
-    }
-    // Handle legacy interface (backward compatibility)
-    else if (guestName && guestEmail && guestPhone) {
-      console.log('⚠️ Using legacy props for backward compatibility');
-      normalizedUserDetails = {
-        name: guestName || "",
-        email: guestEmail || "",
-        phone: guestPhone || "",
-        sharing_type: bookingDetails?.sharing_type || "",
-        price_per_person: bookingDetails?.price_per_person || 0,
-        security_deposit_per_person: bookingDetails?.security_deposit_per_person || 0,
-        total_amount: bookingDetails?.total_amount || 0,
-        amount_paid: bookingDetails?.amount_paid || 0,
-        amount_due: bookingDetails?.amount_due || 0,
-        room_id: bookingDetails?.room_id || "",
-        check_in: bookingDetails?.check_in || "",
-        check_out: bookingDetails?.check_out || "",
-      };
-    }
-    // Fallback to user data if available
-    else if (user) {
-      console.log('⚠️ Using fallback user data');
-      normalizedUserDetails = {
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || "",
-        email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        sharing_type: "",
-        price_per_person: 0,
-        security_deposit_per_person: 0,
-        total_amount: 0,
-        amount_paid: 0,
-        amount_due: 0,
-        room_id: "",
-        check_in: "",
-        check_out: "",
-      };
-    }
-    // Final fallback - empty but safe defaults
-    else {
-      console.log('⚠️ Using empty defaults - user must fill details');
-      normalizedUserDetails = {
-        name: "",
-        email: "",
-        phone: "",
-        sharing_type: "",
-        price_per_person: 0,
-        security_deposit_per_person: 0,
-        total_amount: 0,
-        amount_paid: 0,
-        amount_due: 0,
-        room_id: "",
-        check_in: "",
-        check_out: "",
-      };
-    }
-
-    console.log('✅ UserDetails normalized:', {
-      name: normalizedUserDetails.name,
-      email: normalizedUserDetails.email,
-      phone: normalizedUserDetails.phone,
-      hasAllRequired: !!(normalizedUserDetails.name && normalizedUserDetails.email && normalizedUserDetails.phone)
-    });
-
-    setUserDetails(normalizedUserDetails);
-  }, [propUserDetails, guestName, guestEmail, guestPhone, bookingDetails, user]);
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -176,39 +47,16 @@ export default function RazorpayPayment({
       return;
     }
 
-    // 3️⃣ ADD HARD GUARD BEFORE PAYMENT (REQUIRED)
-    console.log('🔍 Pre-validating payment data...', { userDetails });
-    
-    // 4️⃣ PROTECT PAY BUTTON HANDLER (CRITICAL) - Safe destructuring
-    const { name, email, phone } = userDetails || {};
-    
-    if (!name || !email || !phone) {
-      console.log('❌ Missing user details:', { name: !!name, email: !!email, phone: !!phone, userDetails });
+    // Validate user details
+    if (!userDetails.name || !userDetails.email || !userDetails.phone) {
       onError('Please fill all details before payment');
       return;
     }
 
-    const paymentInput = {
-      propertyId,
-      amount,
-      userDetails: {
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim()
-      }
-    };
-
-    const validationError = preValidatePayment(paymentInput);
-    if (validationError) {
-      onError(validationError);
-      return;
-    }
-
-    console.log('✅ Pre-validation passed');
     setLoading(true);
 
     try {
-      // Step 2: Get authentication session
+      // Get authentication session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -217,51 +65,33 @@ export default function RazorpayPayment({
         return;
       }
 
-      console.log('🔄 Creating order for property:', propertyId);
-
-      // Step 3: SEND PAYLOAD EXPLICITLY (CRITICAL)
-      // 5️⃣ FIX INVALID URL ERROR - Ensure valid URL
-      const orderPayload = {
-        propertyId: propertyId,
-        amount: amount,
-        userDetails: {
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim()
-        }
-      };
-
-      console.log('📤 Sending standardized payload:', {
-        propertyId: orderPayload.propertyId,
-        amount: orderPayload.amount,
-        userDetails: {
-          name: orderPayload.userDetails.name,
-          email: orderPayload.userDetails.email,
-          phone: orderPayload.userDetails.phone
-        }
-      });
-
+      // Create Razorpay order
       const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(orderPayload),
+        body: JSON.stringify({
+          propertyId,
+          amount,
+          userDetails: {
+            name: userDetails.name.trim(),
+            email: userDetails.email.trim(),
+            phone: userDetails.phone.trim()
+          }
+        }),
       });
 
       const orderData = await orderResponse.json();
 
       if (!orderData.success) {
-        // UX FIX: Generic error message (no internal field names or backend validation messages)
         onError('Unable to start payment. Please try again or contact support.');
         setLoading(false);
         return;
       }
 
-      console.log('✅ Order created:', orderData.order_id);
-
-      // Step 4: Initialize Razorpay payment
+      // Initialize Razorpay payment
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -270,75 +100,39 @@ export default function RazorpayPayment({
         description: `Booking for ${propertyName}`,
         order_id: orderData.order_id,
         prefill: {
-          name: name,
-          email: email,
-          contact: phone,
+          name: userDetails.name,
+          email: userDetails.email,
+          contact: userDetails.phone,
         },
         theme: {
-          color: '#FF6711', // Orange theme
-        },
-        method: {
-          netbanking: true,
-          card: true,
-          upi: true,
-          wallet: true,
+          color: '#FF6711',
         },
         handler: async function (response: any) {
           try {
-            console.log('🔄 Payment successful, verifying...');
-
-            // Show generic processing message
-            setLoading(true);
-
-            // Step 5: Verify payment and create booking (server-side only)
-            const verifyPayload = {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              propertyId,
-              userDetails: {
-                name: name,
-                email: email,
-                phone: phone,
-                sharing_type: userDetails?.sharing_type || '',
-                price_per_person: userDetails?.price_per_person || 0,
-                security_deposit_per_person: userDetails?.security_deposit_per_person || 0,
-                total_amount: userDetails?.total_amount || 0,
-                amount_paid: userDetails?.amount_paid || 0,
-                amount_due: userDetails?.amount_due || 0,
-                room_id: userDetails?.room_id || '',
-                check_in: userDetails?.check_in || '',
-                check_out: userDetails?.check_out || '',
-              }
-            };
-
+            // Verify payment and create booking
             const verifyResponse = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`,
               },
-              body: JSON.stringify(verifyPayload),
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                propertyId,
+                userDetails
+              }),
             });
 
             const verifyData = await verifyResponse.json();
-            console.log('✅ Payment verification response:', verifyData);
 
             if (verifyData.success) {
-              // Payment verified and booking created on server
-              console.log('✅ Booking created:', verifyData.booking_id);
               onSuccess(response.razorpay_payment_id, verifyData.booking_id);
             } else {
-              // Show user-friendly success message
-              if (verifyData.support_needed) {
-                onError('Payment successful 🎉 Your booking is confirmed. Our team will contact you with property details shortly.');
-              } else {
-                onError('Payment verification failed. Please contact support if payment was deducted.');
-              }
+              onError('Payment successful! Your booking is confirmed. Our team will contact you shortly.');
             }
-          } catch (error: any) {
-            console.error('❌ Payment verification error:', error);
-            // Generic error message - no raw error details
+          } catch (error) {
             onError('Payment processing failed. Please contact support if payment was deducted.');
           } finally {
             setLoading(false);
@@ -346,7 +140,6 @@ export default function RazorpayPayment({
         },
         modal: {
           ondismiss: function () {
-            console.log('Payment modal dismissed');
             setLoading(false);
           },
         },
@@ -355,16 +148,12 @@ export default function RazorpayPayment({
       const rzp = new window.Razorpay(options);
       
       rzp.on('payment.failed', function (response: any) {
-        console.error('❌ Payment failed:', response.error);
-        // UX FIX: Generic error message (no popup error with raw backend messages)
-        onError('Unable to start payment. Please try again or contact support.');
+        onError('Payment failed. Please try again.');
         setLoading(false);
       });
 
       rzp.open();
-    } catch (error: any) {
-      console.error('❌ Payment initiation error:', error);
-      // UX FIX: Generic error message
+    } catch (error) {
       onError('Unable to start payment. Please try again or contact support.');
       setLoading(false);
     }
@@ -413,7 +202,7 @@ export default function RazorpayPayment({
 
         <button
           onClick={handlePayment}
-          disabled={loading || !scriptLoaded || !userDetails?.name || !userDetails?.email || !userDetails?.phone}
+          disabled={loading || !scriptLoaded || !userDetails.name || !userDetails.email || !userDetails.phone}
           className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           {loading ? (
@@ -423,7 +212,7 @@ export default function RazorpayPayment({
             </>
           ) : !scriptLoaded ? (
             <span>Loading Payment System...</span>
-          ) : !userDetails?.name || !userDetails?.email || !userDetails?.phone ? (
+          ) : !userDetails.name || !userDetails.email || !userDetails.phone ? (
             <span>Please fill all details to continue</span>
           ) : (
             <>
@@ -437,18 +226,6 @@ export default function RazorpayPayment({
           <p className="text-xs text-gray-500">
             Secured by Razorpay • Your payment information is encrypted and secure
           </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Payment successful 🎉 Your booking is confirmed.
-          </p>
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-left">
-              <strong>Debug Info:</strong>
-              <br />Name: {userDetails?.name || 'Missing'}
-              <br />Email: {userDetails?.email || 'Missing'}
-              <br />Phone: {userDetails?.phone || 'Missing'}
-              <br />Valid: {!!(userDetails?.name && userDetails?.email && userDetails?.phone) ? 'Yes' : 'No'}
-            </div>
-          )}
         </div>
       </div>
     </>
