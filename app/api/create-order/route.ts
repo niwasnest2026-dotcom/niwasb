@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
+import { ENV_CONFIG } from '@/lib/env-config';
 
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -20,8 +21,8 @@ export async function POST(request: NextRequest) {
 
     // Verify the user session with Supabase
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      ENV_CONFIG.SUPABASE_URL,
+      ENV_CONFIG.SUPABASE_ANON_KEY,
       {
         global: {
           headers: {
@@ -53,7 +54,52 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    // Create Razorpay order
     const order = await razorpay.orders.create(options);
+
+    // Store order in our database for tracking
+    try {
+      const supabaseAdmin = createClient(
+        ENV_CONFIG.SUPABASE_URL,
+        ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      );
+
+      const orderData = {
+        razorpay_order_id: order.id,
+        amount: order.amount, // Already in paise
+        currency: order.currency,
+        status: order.status,
+        receipt: order.receipt,
+        notes: {
+          ...order.notes,
+          user_id: user.id,
+          user_email: user.email,
+          original_amount: amount // Store original amount in rupees
+        }
+      };
+
+      const { data: storedOrder, error: storeError } = await supabaseAdmin
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single();
+
+      if (storeError) {
+        console.log('⚠️ Could not store order in database (table might not exist):', storeError.message);
+        // Don't fail the request if we can't store the order
+      } else {
+        console.log('✅ Order stored in database:', storedOrder.id);
+      }
+    } catch (dbError: any) {
+      console.log('⚠️ Database storage failed:', dbError.message);
+      // Continue with the response even if database storage fails
+    }
 
     return NextResponse.json({
       success: true,

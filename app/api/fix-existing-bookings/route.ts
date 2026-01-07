@@ -162,12 +162,19 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Checking payment_id formats...');
     const { data: bookingsWithPayment, error: paymentError } = await supabaseAdmin
       .from('bookings')
-      .select('id, payment_id, notes')
+      .select('id, notes')
       .not('notes', 'is', null);
 
     if (!paymentError && bookingsWithPayment) {
       for (const booking of bookingsWithPayment) {
-        if (!booking.payment_id && booking.notes) {
+        // Check if booking already has payment_id
+        const { data: currentBooking, error: currentError } = await supabaseAdmin
+          .from('bookings')
+          .select('payment_id')
+          .eq('id', booking.id)
+          .single();
+
+        if (!currentError && currentBooking && !currentBooking.payment_id && booking.notes) {
           // Try to extract payment_id from notes
           const paymentIdMatch = booking.notes.match(/Payment ID: ([^,\s]+)/);
           if (paymentIdMatch) {
@@ -186,6 +193,7 @@ export async function POST(request: NextRequest) {
             }
           }
         }
+      }
       }
     }
 

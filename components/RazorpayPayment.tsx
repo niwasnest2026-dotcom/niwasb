@@ -123,17 +123,32 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
-            // Simple payment verification - no complex booking details needed
-            const verifyPayload = {
+            // Prepare payment verification payload with booking details if available
+            const verifyPayload: any = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             };
 
-            console.log('🔄 Verifying payment:', verifyPayload);
+            // Include booking details if provided
+            if (bookingDetails) {
+              verifyPayload.booking_details = {
+                ...bookingDetails,
+                guest_name: guestName,
+                guest_email: guestEmail,
+                guest_phone: guestPhone
+              };
+            }
 
-            // Verify payment with simple booking logic
-            const verifyResponse = await fetch('/api/verify-payment-simple-booking', {
+            console.log('🔄 Verifying payment with booking details:', verifyPayload);
+
+            // Use the appropriate verification endpoint based on whether we have booking details
+            const verificationEndpoint = bookingDetails 
+              ? '/api/verify-payment' 
+              : '/api/verify-payment-simple-booking';
+
+            // Verify payment with booking details
+            const verifyResponse = await fetch(verificationEndpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
