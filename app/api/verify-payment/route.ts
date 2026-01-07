@@ -6,7 +6,7 @@ import { safeBookingInsert, checkExistingBooking } from '@/lib/schema-safe-inser
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Payment verification started (SCHEMA-SAFE MODE)');
+    console.log('🔍 Payment verification started (RAZORPAY FIX MODE)');
 
     // Step 1: Validate authentication
     const authHeader = request.headers.get('authorization');
@@ -53,35 +53,64 @@ export async function POST(request: NextRequest) {
       order_id: razorpay_order_id,
       payment_id: razorpay_payment_id,
       property_id: propertyId,
-      has_user_details: !!userDetails
+      has_user_details: !!userDetails,
+      signature_length: razorpay_signature?.length
     });
 
     // Step 4: Validate required fields
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !propertyId || !userDetails) {
+      console.log('❌ Missing required fields:', {
+        has_order_id: !!razorpay_order_id,
+        has_payment_id: !!razorpay_payment_id,
+        has_signature: !!razorpay_signature,
+        has_property_id: !!propertyId,
+        has_user_details: !!userDetails
+      });
       return NextResponse.json(
         { success: false, error: 'Missing required payment verification data' },
         { status: 400 }
       );
     }
 
-    // Step 5: Verify Razorpay signature (CRITICAL - never trust frontend)
+    // Step 5: CRITICAL - Verify Razorpay signature (LOCAL VERIFICATION ONLY)
+    console.log('🔐 Starting Razorpay signature verification...');
+    
+    // Ensure we have the secret key
+    if (!ENV_CONFIG.RAZORPAY_KEY_SECRET) {
+      console.error('❌ RAZORPAY_KEY_SECRET not found in environment');
+      return NextResponse.json(
+        { success: false, error: 'Payment system configuration error' },
+        { status: 500 }
+      );
+    }
+
+    // Generate signature locally (NO API CALLS TO RAZORPAY)
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac('sha256', ENV_CONFIG.RAZORPAY_KEY_SECRET)
       .update(body.toString())
       .digest('hex');
 
+    console.log('🔍 Signature verification details:', {
+      body_string: body,
+      expected_signature: expectedSignature,
+      received_signature: razorpay_signature,
+      signatures_match: expectedSignature === razorpay_signature
+    });
+
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (!isAuthentic) {
       console.log('❌ Payment signature verification FAILED');
+      console.log('❌ Expected:', expectedSignature);
+      console.log('❌ Received:', razorpay_signature);
       return NextResponse.json(
         { success: false, error: 'Payment verification failed - invalid signature' },
         { status: 400 }
       );
     }
 
-    console.log('✅ Payment signature verified successfully');
+    console.log('✅ Payment signature verified successfully - NO API CALLS MADE');
 
     // Step 6: Create admin client for database operations
     const supabaseAdmin = createClient(
@@ -103,7 +132,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (propertyError || !property) {
-      console.log('❌ Property not found:', propertyId);
+      console.log('❌ Property not found:', propertyId, propertyError?.message);
       return NextResponse.json(
         { success: false, error: 'Property not found' },
         { status: 404 }
@@ -173,7 +202,7 @@ export async function POST(request: NextRequest) {
       const insertResult = await safeBookingInsert(bookingPayload);
       
       if (!insertResult.success) {
-        throw new Error('Schema-safe insert returned failure');
+        throw new Error(`Schema-safe insert failed: ${insertResult.error}`);
       }
 
       const bookingResult = insertResult.booking;
@@ -229,7 +258,8 @@ export async function POST(request: NextRequest) {
         guest_name: userDetails.name,
         guest_email: userDetails.email,
         amount_paid: bookingPayload.amount_paid,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        error: bookingError.message
       });
 
       // Return fail-safe response (don't lose paid users)
@@ -244,11 +274,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Payment verification error:', error);
+    console.error('❌ Error stack:', error.stack);
+    
     return NextResponse.json(
       {
         success: false,
         error: 'Payment verification failed',
-        message: 'Technical error occurred. Please contact support if payment was deducted.'
+        message: 'Technical error occurred. Please contact support if payment was deducted.',
+        debug_info: process.env.NODE_ENV === 'development' ? error.message : undefined
       },
       { status: 500 }
     );
