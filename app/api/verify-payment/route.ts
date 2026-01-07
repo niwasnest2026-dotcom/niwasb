@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       total_amount: userDetails.total_amount || property.price,
       amount_paid: userDetails.amount_paid || Math.round(property.price * 0.2), // 20% advance
       amount_due: userDetails.amount_due || Math.round(property.price * 0.8), // 80% remaining
-      booking_status: 'confirmed',
+      booking_status: 'booked', // AUTO-BOOKED: No confirmation needed
       payment_date: new Date().toISOString(),
       notes: `Verified payment: ${razorpay_payment_id} | Order: ${razorpay_order_id} | Property: ${property.name}`,
       

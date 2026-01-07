@@ -45,7 +45,7 @@ Successfully implemented a comprehensive auto-anchoring system that ensures all 
 
 ### Property Fields:
 ```typescript
-{
+{`
   // Required fields (user input)
   name: string,
   address: string,
@@ -180,6 +180,6 @@ Successfully implemented a comprehensive auto-anchoring system that ensures all 
 1. **Create New Property**: Check all auto-anchored fields
 2. **Test Payment Flow**: Verify anchored property selection
 3. **Check Database**: Confirm proper relationships and data
-4. **Profile Integration**: Test owner details display
+4. **Profile Integration**: Test owner details display5
 
 The auto-anchoring system ensures that every property added to the platform (now and in the future) will be properly structured, complete, and integrated with all system features automatically!

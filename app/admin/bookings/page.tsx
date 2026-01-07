@@ -96,12 +96,12 @@ export default function AdminBookings() {
         if (!roomError && roomData) {
           let newAvailableBeds = (roomData as any).available_beds;
 
-          // If changing from confirmed to cancelled/completed, increase available beds
-          if (oldStatus === 'confirmed' && (newStatus === 'cancelled' || newStatus === 'completed')) {
+          // If changing from booked to cancelled/completed, increase available beds
+          if (oldStatus === 'booked' && (newStatus === 'cancelled' || newStatus === 'completed')) {
             newAvailableBeds = (roomData as any).available_beds + 1;
           }
-          // If changing from cancelled to confirmed, decrease available beds
-          else if (oldStatus === 'cancelled' && newStatus === 'confirmed') {
+          // If changing from cancelled to booked, decrease available beds
+          else if (oldStatus === 'cancelled' && newStatus === 'booked') {
             newAvailableBeds = Math.max(0, (roomData as any).available_beds - 1);
           }
 
@@ -134,7 +134,7 @@ export default function AdminBookings() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'booked': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -181,7 +181,7 @@ export default function AdminBookings() {
             <nav className="flex flex-wrap px-4 sm:px-6">
               {[
                 { key: 'all', label: 'All Bookings', count: bookings.length },
-                { key: 'confirmed', label: 'Confirmed', count: bookings.filter(b => b.booking_status === 'confirmed').length },
+                { key: 'booked', label: 'Booked', count: bookings.filter(b => b.booking_status === 'booked').length },
                 { key: 'cancelled', label: 'Cancelled', count: bookings.filter(b => b.booking_status === 'cancelled').length },
                 { key: 'completed', label: 'Completed', count: bookings.filter(b => b.booking_status === 'completed').length },
               ].map((tab) => (
@@ -196,7 +196,7 @@ export default function AdminBookings() {
                 >
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">
-                    {tab.key === 'all' ? 'All' : tab.key === 'confirmed' ? 'Confirmed' : tab.key === 'cancelled' ? 'Cancelled' : 'Complete'}
+                    {tab.key === 'all' ? 'All' : tab.key === 'booked' ? 'Booked' : tab.key === 'cancelled' ? 'Cancelled' : 'Complete'}
                   </span>
                   <span className="ml-1">({tab.count})</span>
                 </button>
@@ -315,7 +315,7 @@ export default function AdminBookings() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            {booking.booking_status === 'confirmed' && (
+                            {booking.booking_status === 'booked' && (
                               <>
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'completed')}
@@ -335,11 +335,11 @@ export default function AdminBookings() {
                             )}
                             {booking.booking_status === 'cancelled' && (
                               <button
-                                onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                onClick={() => updateBookingStatus(booking.id, 'booked')}
                                 className="text-green-600 hover:text-green-900"
-                                title="Reconfirm Booking"
+                                title="Rebook"
                               >
-                                Reconfirm
+                                Rebook
                               </button>
                             )}
                           </div>
@@ -416,7 +416,7 @@ export default function AdminBookings() {
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
-                      {booking.booking_status === 'confirmed' && (
+                      {booking.booking_status === 'booked' && (
                         <>
                           <button
                             onClick={() => updateBookingStatus(booking.id, 'completed')}
@@ -434,10 +434,10 @@ export default function AdminBookings() {
                       )}
                       {booking.booking_status === 'cancelled' && (
                         <button
-                          onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                          onClick={() => updateBookingStatus(booking.id, 'booked')}
                           className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100"
                         >
-                          Reconfirm
+                          Rebook
                         </button>
                       )}
                     </div>
@@ -468,9 +468,9 @@ export default function AdminBookings() {
                 <FaUser className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
               <div className="ml-3 sm:ml-4">
-                <div className="text-xs sm:text-sm font-medium text-gray-500">Confirmed</div>
+                <div className="text-xs sm:text-sm font-medium text-gray-500">Booked</div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900">
-                  {bookings.filter(b => b.booking_status === 'confirmed').length}
+                  {bookings.filter(b => b.booking_status === 'booked').length}
                 </div>
               </div>
             </div>

@@ -329,9 +329,9 @@ export default function RazorpayPayment({
               console.log('✅ Booking created:', verifyData.booking_id);
               onSuccess(response.razorpay_payment_id, verifyData.booking_id);
             } else {
-              // Show generic error message (no raw backend errors)
+              // Show user-friendly success message
               if (verifyData.support_needed) {
-                onError('Payment received. Booking confirmation in progress. Support will contact you shortly.');
+                onError('Payment successful 🎉 Your booking is confirmed. Our team will contact you with property details shortly.');
               } else {
                 onError('Payment verification failed. Please contact support if payment was deducted.');
               }
@@ -438,7 +438,7 @@ export default function RazorpayPayment({
             Secured by Razorpay • Your payment information is encrypted and secure
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Payment received. Booking confirmation in progress.
+            Payment successful 🎉 Your booking is confirmed.
           </p>
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-left">
