@@ -645,14 +645,30 @@ export default function BookingSummaryPage() {
           {/* Razorpay Payment Component */}
           <RazorpayPayment
             amount={Math.round(selectedRoom.price_per_person * 0.2)}
+            propertyId={property.id}
+            propertyName={property.name}
+            userDetails={{
+              name: fullName!,
+              email: email!,
+              phone: phone!,
+              sharing_type: selectedRoom.sharing_type,
+              price_per_person: selectedRoom.price_per_person,
+              security_deposit_per_person: selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2,
+              total_amount: selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2),
+              amount_paid: Math.round(selectedRoom.price_per_person * 0.2),
+              amount_due: Math.round((selectedRoom.price_per_person + (selectedRoom.security_deposit_per_person || selectedRoom.price_per_person * 2)) - (selectedRoom.price_per_person * 0.2)),
+              room_id: selectedRoom.id && !selectedRoom.id.startsWith('property_') ? selectedRoom.id : undefined,
+              check_in: checkIn,
+              check_out: checkOut
+            }}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            // Legacy props for backward compatibility (will be ignored)
             bookingId={`${property.id}_${Date.now()}`}
             guestName={fullName!}
             guestEmail={email!}
             guestPhone={phone!}
-            propertyName={property.name}
             roomNumber={selectedRoom.room_number || selectedRoom.sharing_type}
-            onSuccess={handlePaymentSuccess}
-            onError={handlePaymentError}
             bookingDetails={{
               property_id: property.id,
               room_id: selectedRoom.id && !selectedRoom.id.startsWith('property_') ? selectedRoom.id : undefined,

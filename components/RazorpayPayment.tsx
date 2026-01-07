@@ -78,12 +78,13 @@ export default function RazorpayPayment({
 
   // 2️⃣ INITIALIZE STATE FROM PROPS (onPageLoad logic)
   useEffect(() => {
-    console.log('🔄 Initializing userDetails from props...');
+    console.log('🔄 Initializing userDetails from props...', { propUserDetails, guestName, guestEmail, guestPhone });
     
     let normalizedUserDetails;
     
     // Handle new interface (preferred)
     if (propUserDetails && propUserDetails.name && propUserDetails.email && propUserDetails.phone) {
+      console.log('✅ Using new userDetails interface');
       normalizedUserDetails = {
         name: propUserDetails.name || "",
         email: propUserDetails.email || "",
@@ -176,13 +177,13 @@ export default function RazorpayPayment({
     }
 
     // 3️⃣ ADD HARD GUARD BEFORE PAYMENT (REQUIRED)
-    console.log('🔍 Pre-validating payment data...');
+    console.log('🔍 Pre-validating payment data...', { userDetails });
     
     // 4️⃣ PROTECT PAY BUTTON HANDLER (CRITICAL) - Safe destructuring
-    const { name, email, phone } = userDetails;
+    const { name, email, phone } = userDetails || {};
     
     if (!name || !email || !phone) {
-      console.log('❌ Missing user details:', { name: !!name, email: !!email, phone: !!phone });
+      console.log('❌ Missing user details:', { name: !!name, email: !!email, phone: !!phone, userDetails });
       onError('Please fill all details before payment');
       return;
     }
@@ -299,15 +300,15 @@ export default function RazorpayPayment({
                 name: name,
                 email: email,
                 phone: phone,
-                sharing_type: userDetails.sharing_type,
-                price_per_person: userDetails.price_per_person,
-                security_deposit_per_person: userDetails.security_deposit_per_person,
-                total_amount: userDetails.total_amount,
-                amount_paid: userDetails.amount_paid,
-                amount_due: userDetails.amount_due,
-                room_id: userDetails.room_id,
-                check_in: userDetails.check_in,
-                check_out: userDetails.check_out,
+                sharing_type: userDetails?.sharing_type || '',
+                price_per_person: userDetails?.price_per_person || 0,
+                security_deposit_per_person: userDetails?.security_deposit_per_person || 0,
+                total_amount: userDetails?.total_amount || 0,
+                amount_paid: userDetails?.amount_paid || 0,
+                amount_due: userDetails?.amount_due || 0,
+                room_id: userDetails?.room_id || '',
+                check_in: userDetails?.check_in || '',
+                check_out: userDetails?.check_out || '',
               }
             };
 
@@ -412,7 +413,7 @@ export default function RazorpayPayment({
 
         <button
           onClick={handlePayment}
-          disabled={loading || !scriptLoaded || !userDetails.name || !userDetails.email || !userDetails.phone}
+          disabled={loading || !scriptLoaded || !userDetails?.name || !userDetails?.email || !userDetails?.phone}
           className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           {loading ? (
@@ -422,7 +423,7 @@ export default function RazorpayPayment({
             </>
           ) : !scriptLoaded ? (
             <span>Loading Payment System...</span>
-          ) : !userDetails.name || !userDetails.email || !userDetails.phone ? (
+          ) : !userDetails?.name || !userDetails?.email || !userDetails?.phone ? (
             <span>Please fill all details to continue</span>
           ) : (
             <>
@@ -442,10 +443,10 @@ export default function RazorpayPayment({
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-left">
               <strong>Debug Info:</strong>
-              <br />Name: {userDetails.name || 'Missing'}
-              <br />Email: {userDetails.email || 'Missing'}
-              <br />Phone: {userDetails.phone || 'Missing'}
-              <br />Valid: {!!(userDetails.name && userDetails.email && userDetails.phone) ? 'Yes' : 'No'}
+              <br />Name: {userDetails?.name || 'Missing'}
+              <br />Email: {userDetails?.email || 'Missing'}
+              <br />Phone: {userDetails?.phone || 'Missing'}
+              <br />Valid: {!!(userDetails?.name && userDetails?.email && userDetails?.phone) ? 'Yes' : 'No'}
             </div>
           )}
         </div>
