@@ -194,7 +194,6 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-      }
     }
 
     // 4. Get final count of fixed bookings
