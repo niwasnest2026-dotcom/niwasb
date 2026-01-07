@@ -7,12 +7,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Payment verification started');
     
-    // Debug environment variables
+    // Debug environment variables using ENV_CONFIG
     console.log('🔧 Environment check:', {
-      supabase_url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      anon_key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      service_role_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      razorpay_secret: !!process.env.RAZORPAY_KEY_SECRET,
+      supabase_url: !!ENV_CONFIG.SUPABASE_URL,
+      anon_key: !!ENV_CONFIG.SUPABASE_ANON_KEY,
+      service_role_key: !!ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      razorpay_secret: !!ENV_CONFIG.RAZORPAY_KEY_SECRET,
       node_env: process.env.NODE_ENV
     });
 
@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate required environment variables
+    // Validate required environment variables using ENV_CONFIG
     const requiredEnvVars = {
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET
+      SUPABASE_URL: ENV_CONFIG.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_ANON_KEY: ENV_CONFIG.SUPABASE_ANON_KEY,
+      RAZORPAY_KEY_SECRET: ENV_CONFIG.RAZORPAY_KEY_SECRET
     };
 
     const missingVars = Object.entries(requiredEnvVars)
@@ -44,9 +44,12 @@ export async function POST(request: NextRequest) {
           success: false, 
           error: `Missing environment variables: ${missingVars.join(', ')}`,
           debug: {
-            available_env_keys: Object.keys(process.env).filter(key => 
-              key.includes('SUPABASE') || key.includes('RAZORPAY')
-            )
+            env_config_status: {
+              supabase_url: !!ENV_CONFIG.SUPABASE_URL,
+              service_role_key: !!ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+              anon_key: !!ENV_CONFIG.SUPABASE_ANON_KEY,
+              razorpay_secret: !!ENV_CONFIG.RAZORPAY_KEY_SECRET
+            }
           }
         },
         { status: 500 }
