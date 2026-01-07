@@ -68,6 +68,8 @@ export default function MyBookingsPage() {
     if (!user) return;
 
     try {
+      // Fetch bookings for the current user by both user_id AND email
+      // This ensures we catch bookings created before user_id was properly set
       const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -88,7 +90,7 @@ export default function MyBookingsPage() {
             room_type
           )
         `)
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},guest_email.eq.${user.email}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -173,16 +175,25 @@ export default function MyBookingsPage() {
                 <FaHome className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                 <h3 className="text-xl font-medium text-gray-900 mb-2">No bookings yet</h3>
                 <p className="text-gray-500 mb-6">
-                  You haven't made any bookings yet. Start exploring properties to make your first booking.
+                  You haven't made any bookings yet, or they might need to be synced with your account.
                 </p>
-                <Link
-                  href="/listings"
-                  className="inline-flex items-center px-6 py-3 text-white font-semibold rounded-lg transition-all hover:shadow-lg"
-                  style={{ backgroundColor: '#FF6711' }}
-                >
-                  <FaHome className="mr-2" />
-                  Browse Properties
-                </Link>
+                <div className="space-y-3">
+                  <Link
+                    href="/sync-my-bookings"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:bg-blue-700 mr-3"
+                  >
+                    <FaUser className="mr-2" />
+                    Sync My Bookings
+                  </Link>
+                  <Link
+                    href="/listings"
+                    className="inline-flex items-center px-6 py-3 text-white font-semibold rounded-lg transition-all hover:shadow-lg"
+                    style={{ backgroundColor: '#FF6711' }}
+                  >
+                    <FaHome className="mr-2" />
+                    Browse Properties
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
