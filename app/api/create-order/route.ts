@@ -3,14 +3,17 @@ import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
 import { ENV_CONFIG } from '@/lib/env-config';
 
+// Initialize Razorpay with environment variables
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  key_secret: ENV_CONFIG.RAZORPAY_KEY_SECRET!,
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    console.log('🔄 Creating Razorpay order...');
+
+    // Step 1: Validate authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
@@ -19,15 +22,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the user session with Supabase
+    // Step 2: Verify user session
     const supabase = createClient(
       ENV_CONFIG.SUPABASE_URL,
       ENV_CONFIG.SUPABASE_ANON_KEY,
       {
         global: {
-          headers: {
-            Authorization: authHeader,
-          },
+          headers: { Authorization: authHeader },
         },
       }
     );
@@ -35,82 +36,95 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('❌ Authentication failed:', authError?.message);
       return NextResponse.json(
         { success: false, error: 'Invalid authentication' },
         { status: 401 }
       );
     }
 
-    const { amount, currency = 'INR', receipt, notes } = await request.json();
+    console.log('✅ User authenticated:', user.id);
 
-    const options = {
-      amount: amount * 100, // Razorpay expects amount in paise
-      currency,
-      receipt: receipt.substring(0, 40), // Razorpay receipt max length is 40 characters
+    // Step 3: Validate request payload
+    const { propertyId, amount, userDetails } = await request.json();
+
+    if (!propertyId || !amount || !userDetails) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: propertyId, amount, userDetails' },
+        { status: 400 }
+      );
+    }
+
+    // Step 4: Validate property exists (server-side validation)
+    const supabaseAdmin = createClient(
+      ENV_CONFIG.SUPABASE_URL,
+      ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    const { data: property, error: propertyError } = await supabaseAdmin
+      .from('properties')
+      .select('id, name, price')
+      .eq('id', propertyId)
+      .single();
+
+    if (propertyError || !property) {
+      console.log('❌ Property not found:', propertyId);
+      return NextResponse.json(
+        { success: false, error: 'Property not found' },
+        { status: 404 }
+      );
+    }
+
+    console.log('✅ Property validated:', property.name);
+
+    // Step 5: Create Razorpay order (NO booking creation here)
+    const orderOptions = {
+      amount: Math.round(amount * 100), // Convert to paise
+      currency: 'INR',
+      receipt: `order_${Date.now()}_${propertyId.slice(-8)}`, // Unique receipt
       notes: {
-        ...notes,
-        user_id: user.id, // Add user ID to notes for tracking
+        property_id: propertyId,
+        property_name: property.name,
+        user_id: user.id,
         user_email: user.email,
+        guest_name: userDetails.name,
+        guest_email: userDetails.email,
+        guest_phone: userDetails.phone
       },
     };
 
-    // Create Razorpay order
-    const order = await razorpay.orders.create(options);
+    const order = await razorpay.orders.create(orderOptions as any) as any;
+    console.log('✅ Razorpay order created:', order.id);
 
-    // Store order in our database for tracking
-    try {
-      const supabaseAdmin = createClient(
-        ENV_CONFIG.SUPABASE_URL,
-        ENV_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        }
-      );
-
-      const orderData = {
-        razorpay_order_id: order.id,
-        amount: order.amount, // Already in paise
-        currency: order.currency,
-        status: order.status,
-        receipt: order.receipt,
-        notes: {
-          ...order.notes,
-          user_id: user.id,
-          user_email: user.email,
-          original_amount: amount // Store original amount in rupees
-        }
-      };
-
-      const { data: storedOrder, error: storeError } = await supabaseAdmin
-        .from('orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (storeError) {
-        console.log('⚠️ Could not store order in database (table might not exist):', storeError.message);
-        // Don't fail the request if we can't store the order
-      } else {
-        console.log('✅ Order stored in database:', storedOrder.id);
-      }
-    } catch (dbError: any) {
-      console.log('⚠️ Database storage failed:', dbError.message);
-      // Continue with the response even if database storage fails
-    }
-
+    // Step 6: Return order details (NO booking created yet)
     return NextResponse.json({
       success: true,
-      order,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      // Include property and user details for frontend
+      property: {
+        id: property.id,
+        name: property.name
+      },
+      user: {
+        id: user.id,
+        email: user.email
+      }
     });
+
   } catch (error: any) {
-    console.error('Razorpay order creation error:', error);
+    console.error('❌ Order creation error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: error.message || 'Failed to create order',
       },
       { status: 500 }
     );

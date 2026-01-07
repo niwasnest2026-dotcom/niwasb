@@ -7,28 +7,24 @@ import { supabase } from '@/lib/supabase';
 
 interface RazorpayPaymentProps {
   amount: number;
-  bookingId: string;
-  guestName: string;
-  guestEmail: string;
-  guestPhone: string;
+  propertyId: string;
   propertyName: string;
-  roomNumber: string;
-  onSuccess: (paymentId: string) => void;
-  onError: (error: string) => void;
-  // Optional booking details for real-time booking creation
-  bookingDetails?: {
-    property_id: string;
+  userDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    sharing_type?: string;
+    price_per_person?: number;
+    security_deposit_per_person?: number;
+    total_amount?: number;
+    amount_paid?: number;
+    amount_due?: number;
     room_id?: string;
-    sharing_type: string;
-    price_per_person: number;
-    security_deposit_per_person: number;
-    total_amount: number;
-    amount_paid: number;
-    amount_due: number;
-    duration?: string;
     check_in?: string;
     check_out?: string;
   };
+  onSuccess: (paymentId: string, bookingId: string) => void;
+  onError: (error: string) => void;
 }
 
 declare global {
@@ -39,15 +35,11 @@ declare global {
 
 export default function RazorpayPayment({
   amount,
-  bookingId,
-  guestName,
-  guestEmail,
-  guestPhone,
+  propertyId,
   propertyName,
-  roomNumber,
+  userDetails,
   onSuccess,
   onError,
-  bookingDetails,
 }: RazorpayPaymentProps) {
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -67,15 +59,18 @@ export default function RazorpayPayment({
     setLoading(true);
 
     try {
-      // Get the current session to include in API calls
+      // Step 1: Get authentication session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         onError('Authentication session expired. Please login again.');
+        setLoading(false);
         return;
       }
 
-      // Create order with authentication
+      console.log('🔄 Creating order for property:', propertyId);
+
+      // Step 2: Create Razorpay order (NO booking created here)
       const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: {
@@ -83,13 +78,9 @@ export default function RazorpayPayment({
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
+          propertyId,
           amount,
-          receipt: `booking_${bookingId}`,
-          notes: {
-            booking_id: bookingId,
-            property_name: propertyName,
-            room_number: roomNumber,
-          },
+          userDetails
         }),
       });
 
@@ -99,21 +90,23 @@ export default function RazorpayPayment({
         throw new Error(orderData.error || 'Failed to create order');
       }
 
-      // Initialize Razorpay
+      console.log('✅ Order created:', orderData.order_id);
+
+      // Step 3: Initialize Razorpay payment
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
+        amount: orderData.amount,
+        currency: orderData.currency,
         name: 'NiwasNest',
-        description: `Booking for ${propertyName} - Room ${roomNumber}`,
-        order_id: orderData.order.id,
+        description: `Booking for ${propertyName}`,
+        order_id: orderData.order_id,
         prefill: {
-          name: guestName,
-          email: guestEmail,
-          contact: guestPhone,
+          name: userDetails.name,
+          email: userDetails.email,
+          contact: userDetails.phone,
         },
         theme: {
-          color: '#FF6711', // Orange theme to match the website
+          color: '#FF6711', // Orange theme
         },
         method: {
           netbanking: true,
@@ -123,30 +116,21 @@ export default function RazorpayPayment({
         },
         handler: async function (response: any) {
           try {
-            // Prepare payment verification payload with booking details if available
-            const verifyPayload: any = {
+            console.log('🔄 Payment successful, verifying...');
+
+            // Show generic processing message
+            setLoading(true);
+
+            // Step 4: Verify payment and create booking (server-side only)
+            const verifyPayload = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
+              propertyId,
+              userDetails
             };
 
-            // Include booking details if provided
-            if (bookingDetails) {
-              verifyPayload.booking_details = {
-                ...bookingDetails,
-                guest_name: guestName,
-                guest_email: guestEmail,
-                guest_phone: guestPhone
-              };
-            }
-
-            console.log('🔄 Verifying payment with booking details:', verifyPayload);
-
-            // Use the original verification endpoint with proper schema handling
-            const verificationEndpoint = '/api/verify-payment';
-
-            // Verify payment with booking details
-            const verifyResponse = await fetch(verificationEndpoint, {
+            const verifyResponse = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -159,17 +143,28 @@ export default function RazorpayPayment({
             console.log('✅ Payment verification response:', verifyData);
 
             if (verifyData.success) {
-              onSuccess(response.razorpay_payment_id);
+              // Payment verified and booking created on server
+              console.log('✅ Booking created:', verifyData.booking_id);
+              onSuccess(response.razorpay_payment_id, verifyData.booking_id);
             } else {
-              onError('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
+              // Show generic error message (no raw backend errors)
+              if (verifyData.support_needed) {
+                onError('Payment received. Booking confirmation in progress. Support will contact you shortly.');
+              } else {
+                onError('Payment verification failed. Please contact support if payment was deducted.');
+              }
             }
           } catch (error: any) {
             console.error('❌ Payment verification error:', error);
-            onError(error.message || 'Payment verification failed');
+            // Generic error message - no raw error details
+            onError('Payment processing failed. Please contact support if payment was deducted.');
+          } finally {
+            setLoading(false);
           }
         },
         modal: {
           ondismiss: function () {
+            console.log('Payment modal dismissed');
             setLoading(false);
           },
         },
@@ -178,12 +173,14 @@ export default function RazorpayPayment({
       const rzp = new window.Razorpay(options);
       
       rzp.on('payment.failed', function (response: any) {
+        console.error('❌ Payment failed:', response.error);
         onError(response.error.description || 'Payment failed');
         setLoading(false);
       });
 
       rzp.open();
     } catch (error: any) {
+      console.error('❌ Payment initiation error:', error);
       onError(error.message || 'Failed to initiate payment');
       setLoading(false);
     }
@@ -238,14 +235,14 @@ export default function RazorpayPayment({
           {loading ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>Processing...</span>
+              <span>Processing Payment...</span>
             </>
           ) : !scriptLoaded ? (
             <span>Loading Payment System...</span>
           ) : (
             <>
               <span>💳</span>
-              <span>Pay ₹{amount.toLocaleString()} Razorpay</span>
+              <span>Pay ₹{amount.toLocaleString()} Securely</span>
             </>
           )}
         </button>
@@ -253,6 +250,9 @@ export default function RazorpayPayment({
         <div className="text-center">
           <p className="text-xs text-gray-500">
             Secured by Razorpay • Your payment information is encrypted and secure
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Payment received. Booking confirmation in progress.
           </p>
         </div>
       </div>
