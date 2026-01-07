@@ -142,10 +142,8 @@ export default function RazorpayPayment({
 
             console.log('🔄 Verifying payment with booking details:', verifyPayload);
 
-            // Use the appropriate verification endpoint based on whether we have booking details
-            const verificationEndpoint = bookingDetails 
-              ? '/api/verify-payment' 
-              : '/api/verify-payment-simple-booking';
+            // Use the fixed verification endpoint that properly handles property selection
+            const verificationEndpoint = '/api/verify-payment-fixed';
 
             // Verify payment with booking details
             const verifyResponse = await fetch(verificationEndpoint, {
