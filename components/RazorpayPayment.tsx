@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Script from 'next/script';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 
 interface RazorpayPaymentProps {
@@ -33,6 +34,7 @@ export default function RazorpayPayment({
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -126,21 +128,31 @@ export default function RazorpayPayment({
             const verifyData = await verifyResponse.json();
 
             if (verifyData.success) {
-              // Redirect to enhanced success page with all details
-              const successUrl = `/payment-success?` + new URLSearchParams({
-                paymentId: response.razorpay_payment_id,
-                bookingId: verifyData.booking_id,
-                amount: amount.toString(),
-                propertyName: propertyName,
-                guestName: userDetails.name,
-                propertyId: propertyId
-              }).toString();
+              // Show success notification
+              showSuccess(
+                'Payment Successful! 🎉',
+                `Your booking for ${propertyName} has been confirmed. Redirecting to booking details...`
+              );
               
-              window.location.href = successUrl;
+              // Small delay to show notification before redirect
+              setTimeout(() => {
+                const successUrl = `/payment-success?` + new URLSearchParams({
+                  paymentId: response.razorpay_payment_id,
+                  bookingId: verifyData.booking_id,
+                  amount: amount.toString(),
+                  propertyName: propertyName,
+                  guestName: userDetails.name,
+                  propertyId: propertyId
+                }).toString();
+                
+                window.location.href = successUrl;
+              }, 2000);
             } else {
+              showError('Payment Verification Failed', verifyData.message || 'Please contact support if payment was deducted.');
               onError('Payment successful! Your booking is confirmed. Our team will contact you shortly.');
             }
           } catch (error) {
+            showError('Payment Processing Failed', 'Please contact support if payment was deducted.');
             onError('Payment processing failed. Please contact support if payment was deducted.');
           } finally {
             setLoading(false);
@@ -156,12 +168,14 @@ export default function RazorpayPayment({
       const rzp = new window.Razorpay(options);
       
       rzp.on('payment.failed', function (response: any) {
+        showError('Payment Failed', 'Please try again or use a different payment method.');
         onError('Payment failed. Please try again.');
         setLoading(false);
       });
 
       rzp.open();
     } catch (error) {
+      showError('Payment System Error', 'Unable to start payment. Please try again or contact support.');
       onError('Unable to start payment. Please try again or contact support.');
       setLoading(false);
     }

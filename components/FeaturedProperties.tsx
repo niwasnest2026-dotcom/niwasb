@@ -15,15 +15,6 @@ export default function FeaturedProperties() {
 
       console.log('🏠 FeaturedProperties: Starting fetch...');
 
-      // First, ensure properties exist in the database
-      try {
-        const ensureResponse = await fetch('/api/ensure-properties');
-        const ensureData = await ensureResponse.json();
-        console.log('🏗️ FeaturedProperties ensure result:', ensureData);
-      } catch (ensureError) {
-        console.warn('⚠️ Could not ensure properties exist:', ensureError);
-      }
-
       // Simple query - get all properties
       const { data, error } = await supabase
         .from('properties')

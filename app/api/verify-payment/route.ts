@@ -5,9 +5,12 @@ import { ENV_CONFIG } from '@/lib/env-config';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Payment verification started');
+    
     // Validate authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
+      console.error('❌ No authorization header');
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -28,23 +31,36 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.error('❌ Authentication failed:', authError);
       return NextResponse.json(
         { success: false, error: 'Invalid authentication' },
         { status: 401 }
       );
     }
 
+    console.log('✅ User authenticated:', user.id);
+
     // Extract payment data
+    const body = await request.json();
+    console.log('📝 Request body:', { ...body, razorpay_signature: '[HIDDEN]' });
+    
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
       propertyId,
       userDetails
-    } = await request.json();
+    } = body;
 
     // Validate required fields
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !propertyId || !userDetails) {
+      console.error('❌ Missing required fields:', {
+        razorpay_order_id: !!razorpay_order_id,
+        razorpay_payment_id: !!razorpay_payment_id,
+        razorpay_signature: !!razorpay_signature,
+        propertyId: !!propertyId,
+        userDetails: !!userDetails
+      });
       return NextResponse.json(
         { success: false, error: 'Missing required payment verification data' },
         { status: 400 }
@@ -52,20 +68,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify Razorpay signature
-    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const signatureBody = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac('sha256', ENV_CONFIG.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
+      .update(signatureBody.toString())
       .digest('hex');
 
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (!isAuthentic) {
+      console.error('❌ Signature verification failed');
       return NextResponse.json(
         { success: false, error: 'Payment verification failed - invalid signature' },
         { status: 400 }
       );
     }
+
+    console.log('✅ Razorpay signature verified');
 
     // Create admin client for database operations
     const supabaseAdmin = createClient(
@@ -81,11 +100,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (propertyError || !property) {
+      console.error('❌ Property not found:', propertyError);
       return NextResponse.json(
         { success: false, error: 'Property not found' },
         { status: 404 }
       );
     }
+
+    console.log('✅ Property found:', property.name);
 
     // Check if booking already exists
     const { data: existingBooking } = await supabaseAdmin
@@ -95,6 +117,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingBooking) {
+      console.log('⚠️ Booking already exists:', existingBooking.id);
       return NextResponse.json({
         success: true,
         message: 'Payment already processed',
@@ -102,6 +125,8 @@ export async function POST(request: NextRequest) {
         property_name: property.name
       });
     }
+
+    console.log('📝 Creating new booking...');
 
     // Create booking
     const bookingData = {
@@ -138,15 +163,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (bookingError) {
-      console.error('Booking creation failed:', bookingError);
+      console.error('❌ Booking creation failed:', bookingError);
+      console.error('📝 Booking data that failed:', bookingData);
       
       return NextResponse.json({
         success: false,
         message: 'Payment received but booking pending. Support will contact you.',
         razorpay_payment_id: razorpay_payment_id,
-        support_needed: true
+        support_needed: true,
+        error: bookingError.message
       }, { status: 500 });
     }
+
+    console.log('✅ Booking created successfully:', booking.id);
 
     return NextResponse.json({
       success: true,

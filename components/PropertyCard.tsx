@@ -17,8 +17,28 @@ const PropertyCard = memo(function PropertyCard({ property }: PropertyCardProps)
     return null;
   }
 
-  // Simplified image handling - use only featured_image for better performance
-  const imageUrl = property.featured_image || '/placeholder.jpg';
+  // Improved image handling - validate URL before using
+  const getValidImageUrl = (url: string | null | undefined): string => {
+    if (!url) return '/placeholder.jpg';
+    
+    // Check for invalid URLs that cause 400 errors
+    if (url.includes('freepik.com') || 
+        url.includes('drive.google.com') || 
+        url.startsWith('data:image') ||
+        url === '/placeholder.jpg') {
+      return '/placeholder.jpg';
+    }
+    
+    // Check if it's a valid HTTP/HTTPS URL
+    try {
+      new URL(url);
+      return url;
+    } catch {
+      return '/placeholder.jpg';
+    }
+  };
+
+  const imageUrl = getValidImageUrl(property.featured_image);
 
   const handleImageError = useCallback(() => {
     setImageError(true);

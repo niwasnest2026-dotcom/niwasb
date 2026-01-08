@@ -53,15 +53,6 @@ export default function ListingsContent() {
       console.log('🔍 Starting property fetch...');
       console.log('Search params:', { location, gender, city, area });
 
-      // First, ensure properties exist in the database
-      try {
-        const ensureResponse = await fetch('/api/ensure-properties');
-        const ensureData = await ensureResponse.json();
-        console.log('🏗️ Ensure properties result:', ensureData);
-      } catch (ensureError) {
-        console.warn('⚠️ Could not ensure properties exist:', ensureError);
-      }
-
       // Simplified query - get all properties first, then filter
       let query = supabase
         .from('properties')
