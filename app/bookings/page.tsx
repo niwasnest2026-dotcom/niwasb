@@ -21,7 +21,7 @@ interface Booking {
   booking_status: string;
   booking_date: string;
   payment_date: string;
-  razorpay_payment_id: string;
+  payment_id: string;
   properties: {
     id: string;
     name: string;
@@ -56,6 +56,8 @@ export default function BookingsPage() {
       setLoading(true);
       setError(null);
 
+      console.log('🔍 Fetching bookings for user:', user?.id);
+
       const { data, error: fetchError } = await supabase
         .from('bookings')
         .select(`
@@ -70,13 +72,16 @@ export default function BookingsPage() {
             owner_phone
           )
         `)
-        .or(`user_id.eq.${user?.id},guest_email.eq.${user?.email}`)
+        .eq('user_id', user?.id) // Use only user_id for proper filtering
+        .eq('booking_status', 'booked') // Filter for booked status
         .order('created_at', { ascending: false });
 
       if (fetchError) {
+        console.error('❌ Error fetching bookings:', fetchError);
         throw fetchError;
       }
 
+      console.log('✅ Bookings fetched:', data?.length || 0);
       setBookings(data || []);
     } catch (err: any) {
       console.error('Error fetching bookings:', err);
@@ -240,9 +245,9 @@ export default function BookingsPage() {
                         </div>
                       </div>
 
-                      {booking.razorpay_payment_id && (
+                      {booking.payment_id && (
                         <div className="mt-2 text-xs text-gray-500">
-                          Payment ID: {booking.razorpay_payment_id}
+                          Payment ID: {booking.payment_id}
                         </div>
                       )}
                     </div>

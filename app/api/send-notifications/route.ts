@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (bookingId) {
       query = query.eq('id', bookingId);
     } else {
-      query = query.eq('razorpay_payment_id', paymentId);
+      query = query.eq('payment_id', paymentId); // Use payment_id instead of razorpay_payment_id
     }
 
     const { data: booking, error } = await query.single();
@@ -75,7 +75,7 @@ Hi ${booking.guest_name}!
 Your booking has been confirmed:
 🏠 Property: ${booking.properties.name}
 📋 Booking ID: ${booking.id}
-💳 Payment ID: ${booking.razorpay_payment_id}
+💳 Payment ID: ${booking.payment_id}
 💰 Amount Paid: ₹${booking.amount_paid.toLocaleString()}
 💰 Remaining: ₹${booking.amount_due.toLocaleString()}
 

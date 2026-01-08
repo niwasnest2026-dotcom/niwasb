@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const { data: existingBooking } = await supabaseAdmin
       .from('bookings')
       .select('id')
-      .eq('razorpay_payment_id', razorpay_payment_id)
+      .eq('payment_id', razorpay_payment_id)
       .single();
 
     if (existingBooking) {
@@ -128,20 +128,13 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 Creating new booking...');
 
-    // Create booking
+    // Create booking data matching the database schema
     const bookingData = {
       property_id: propertyId,
-      user_id: user.id,
+      user_id: user.id, // Use authenticated user ID from session
       guest_name: userDetails.name,
       guest_email: userDetails.email || user.email,
       guest_phone: userDetails.phone,
-      
-      // Razorpay fields
-      razorpay_payment_id: razorpay_payment_id,
-      razorpay_order_id: razorpay_order_id,
-      razorpay_signature: razorpay_signature,
-      payment_status: 'paid',
-      payment_method: 'razorpay',
       
       // Booking details
       sharing_type: 'Single Room',
@@ -150,11 +143,18 @@ export async function POST(request: NextRequest) {
       total_amount: property.price,
       amount_paid: Math.round(property.price * 0.2), // 20% advance
       amount_due: Math.round(property.price * 0.8), // 80% remaining
-      booking_status: 'booked',
+      
+      // Payment details
+      payment_method: 'razorpay',
+      payment_status: 'paid',
+      booking_status: 'booked', // Use 'booked' status as required
+      payment_id: razorpay_payment_id, // Store payment ID in the correct field
       payment_date: new Date().toISOString(),
       booking_date: new Date().toISOString(),
-      notes: `Payment verified: ${razorpay_payment_id}`
+      notes: `Razorpay Payment: ${razorpay_payment_id} | Order: ${razorpay_order_id} | Signature: ${razorpay_signature}`
     };
+
+    console.log('📝 Booking data to insert:', { ...bookingData, notes: '[PAYMENT_INFO]' });
 
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) {
       console.error('❌ Booking creation failed:', bookingError);
-      console.error('📝 Booking data that failed:', bookingData);
+      console.error('📝 Booking data that failed:', { ...bookingData, notes: '[PAYMENT_INFO]' });
       
       return NextResponse.json({
         success: false,
@@ -176,6 +176,13 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Booking created successfully:', booking.id);
+    console.log('✅ Booking details:', {
+      id: booking.id,
+      user_id: booking.user_id,
+      payment_id: booking.payment_id,
+      booking_status: booking.booking_status,
+      payment_status: booking.payment_status
+    });
 
     return NextResponse.json({
       success: true,

@@ -126,6 +126,8 @@ export default function RazorpayPayment({
             });
 
             const verifyData = await verifyResponse.json();
+            
+            console.log('🔍 Payment verification response:', verifyData);
 
             if (verifyData.success) {
               // Show success notification
@@ -148,8 +150,10 @@ export default function RazorpayPayment({
                 window.location.href = successUrl;
               }, 2000);
             } else {
-              showError('Payment Verification Failed', verifyData.message || 'Please contact support if payment was deducted.');
-              onError('Payment successful! Your booking is confirmed. Our team will contact you shortly.');
+              // Only show error if verification actually failed
+              console.error('❌ Payment verification failed:', verifyData);
+              showError('Payment Verification Failed', verifyData.message || verifyData.error || 'Please contact support if payment was deducted.');
+              onError(verifyData.message || 'Payment verification failed. Please contact support if payment was deducted.');
             }
           } catch (error) {
             showError('Payment Processing Failed', 'Please contact support if payment was deducted.');

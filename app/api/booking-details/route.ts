@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (bookingId) {
       query = query.eq('id', bookingId);
     } else {
-      query = query.eq('razorpay_payment_id', paymentId);
+      query = query.eq('payment_id', paymentId); // Use payment_id instead of razorpay_payment_id
     }
 
     const { data: booking, error } = await query.single();
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         guest_name: booking.guest_name,
         guest_email: booking.guest_email,
         guest_phone: booking.guest_phone,
-        payment_id: booking.razorpay_payment_id,
+        payment_id: booking.payment_id,
         amount_paid: booking.amount_paid,
         amount_due: booking.amount_due,
         total_amount: booking.total_amount,
